@@ -1,3 +1,5 @@
+# Financial Econometrics Practical
+
 This is my README for the Financial Econometrics Practical Exam 2022
 
 ``` r
