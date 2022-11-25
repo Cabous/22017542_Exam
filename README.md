@@ -94,3 +94,6 @@ fmxdat::finplot(SA_Spread_plot, x.date.type = "%Y%m", x.vert = TRUE)
 ```
 
 ![](README_files/figure-markdown_github/unnamed-chunk-4-1.png)
+
+I can confirm that bond yields have since 2020 been the highest in two
+decades.
