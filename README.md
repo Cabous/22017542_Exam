@@ -19,9 +19,26 @@ library(tidyverse)
     ## x dplyr::lag()    masks stats::lag()
 
 ``` r
+library(zoo)
+```
+
+    ## 
+    ## Attaching package: 'zoo'
+    ## 
+    ## The following objects are masked from 'package:base':
+    ## 
+    ##     as.Date, as.Date.numeric
+
+``` r
+library(factoextra)
+```
+
+    ## Welcome! Want to learn more? See two factoextra-related books at https://goo.gl/ve3WBa
+
+``` r
 pacman::p_load(cowplot, glue, tbl2xts)
 
-list.files('C:/Users/Cabous/OneDrive/Desktop/22017542_Exam/Questions/Question3/code/', full.names = T, recursive = T) %>% .[grepl('.R', .)] %>% as.list() %>% walk(~source(.))
+list.files('C:/Users/Cabous/OneDrive/Desktop/22017542_Exam/code/', full.names = T, recursive = T) %>% .[grepl('.R', .)] %>% as.list() %>% walk(~source(.))
 ```
 
 # Question 1: Yield Spreads
@@ -534,3 +551,83 @@ plot_grid(finplot(q2_p3), finplot(q2_p4), labels = list(title = "Comparing Cappe
 ```
 
 ![](README_files/figure-markdown_github/unnamed-chunk-8-1.png)
+
+# Question 4
+
+# Import Data
+
+``` r
+T40 <- read_rds("data/T40.rds")
+```
+
+# Calculate Returns
+
+``` r
+T40_Q4 <- T40 %>% 
+    
+    na.locf(.,na.rm=T, 5) %>%
+    
+    select(date, Tickers, Return, J200) %>%
+    
+    mutate(Return = Return*J200) %>%
+    
+    select(date, Tickers, Return) %>% 
+    
+    group_by(Tickers) %>%
+    
+    mutate(Tickers = gsub(" SJ Equity", "", Tickers))
+
+# PCA using princomp
+
+# prcomp requires wide, numeric data:
+
+return_mat <- T40_Q4 %>% spread(Tickers,Return)
+
+colSums(is.na(T40_Q4))
+```
+
+    ##    date Tickers  Return 
+    ##       0       0       0
+
+``` r
+options(scipen = 999) # Stop the scientific notation of
+
+return_mat <- impute_missing_returns(return_mat, impute_returns_method = "Drawn_Distribution_Collective", Seed = as.numeric(format( Sys.time(), "%Y%d%H%M")))
+
+return_mat_Nodate <- data.matrix(return_mat[, -1])
+
+# Simple Sample covariance and mean:
+
+Sigma <- RiskPortfolios::covEstimation(return_mat_Nodate)
+
+Mu <- RiskPortfolios::meanEstimation(return_mat_Nodate)
+
+#PCA calculations
+
+pca <- prcomp(return_mat_Nodate,center=TRUE, scale.=TRUE)
+
+
+# Plot
+
+fviz_screeplot(pca, ncp = 10)
+```
+
+![](README_files/figure-markdown_github/unnamed-chunk-11-1.png)
+
+``` r
+fviz_pca_var(pca, col.var = "steelblue") + theme_minimal()
+```
+
+![](README_files/figure-markdown_github/unnamed-chunk-11-2.png)
+
+``` r
+fviz_contrib(pca, choice = "var", axes = 1, top = 10)
+```
+
+![](README_files/figure-markdown_github/unnamed-chunk-11-3.png)
+
+``` r
+fviz_contrib(pca, choice = "var", axes = 2, top = 10)
+```
+
+![](README_files/figure-markdown_github/unnamed-chunk-11-4.png)

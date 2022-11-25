@@ -14,9 +14,11 @@ This is my README for the Financial Econometrics Practical Exam 2022
 #gc() 
 
 library(tidyverse)
+library(zoo)
+library(factoextra)
 pacman::p_load(cowplot, glue, tbl2xts)
 
-list.files('C:/Users/Cabous/OneDrive/Desktop/22017542_Exam/Questions/Question3/code/', full.names = T, recursive = T) %>% .[grepl('.R', .)] %>% as.list() %>% walk(~source(.))
+list.files('C:/Users/Cabous/OneDrive/Desktop/22017542_Exam/code/', full.names = T, recursive = T) %>% .[grepl('.R', .)] %>% as.list() %>% walk(~source(.))
 
 ```
 
@@ -517,7 +519,75 @@ plot_grid(finplot(q2_p3), finplot(q2_p4), labels = list(title = "Comparing Cappe
 
 ```
 
+# Question 4
 
+# Import Data
+
+```{r}
+
+T40 <- read_rds("data/T40.rds")
+
+```
+
+
+# Calculate Returns
+
+```{r}
+
+T40_Q4 <- T40 %>% 
+    
+    na.locf(.,na.rm=T, 5) %>%
+    
+    select(date, Tickers, Return, J200) %>%
+    
+    mutate(Return = Return*J200) %>%
+    
+    select(date, Tickers, Return) %>% 
+    
+    group_by(Tickers) %>%
+    
+    mutate(Tickers = gsub(" SJ Equity", "", Tickers))
+
+# PCA using princomp
+
+# prcomp requires wide, numeric data:
+
+return_mat <- T40_Q4 %>% spread(Tickers,Return)
+
+colSums(is.na(T40_Q4))
+
+```
+
+```{r}
+
+options(scipen = 999) # Stop the scientific notation of
+
+return_mat <- impute_missing_returns(return_mat, impute_returns_method = "Drawn_Distribution_Collective", Seed = as.numeric(format( Sys.time(), "%Y%d%H%M")))
+
+return_mat_Nodate <- data.matrix(return_mat[, -1])
+
+# Simple Sample covariance and mean:
+
+Sigma <- RiskPortfolios::covEstimation(return_mat_Nodate)
+
+Mu <- RiskPortfolios::meanEstimation(return_mat_Nodate)
+
+#PCA calculations
+
+pca <- prcomp(return_mat_Nodate,center=TRUE, scale.=TRUE)
+
+
+# Plot
+
+fviz_screeplot(pca, ncp = 10)
+
+fviz_pca_var(pca, col.var = "steelblue") + theme_minimal()
+
+fviz_contrib(pca, choice = "var", axes = 1, top = 10)
+
+fviz_contrib(pca, choice = "var", axes = 2, top = 10)
+
+```
 
 
 
