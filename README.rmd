@@ -14,9 +14,9 @@ This is my README for the Financial Econometrics Practical Exam 2022
 #gc() 
 
 library(tidyverse)
-pacman::p_load(cowplot, glue)
+pacman::p_load(cowplot, glue, tbl2xts)
 
-list.files('code/', full.names = T, recursive = T) %>% .[grepl('.R', .)] %>% as.list() %>% walk(~source(.))
+list.files('C:/Users/Cabous/OneDrive/Desktop/22017542_Exam/Questions/Question3/code/', full.names = T, recursive = T) %>% .[grepl('.R', .)] %>% as.list() %>% walk(~source(.))
 
 ```
 
@@ -291,9 +291,231 @@ compare_spread_plot <- bonds_2y10y_spread %>%
 fmxdat::finplot(compare_spread_plot, x.date.type = "%Y%m", x.vert = TRUE)
 ```
 
+# Question 2: Portfolio Construction
+
+## Import Data
+
+```{r}
+
+T40 <- read_rds("data/T40.rds")
+
+RebDays <- read_rds("data/Rebalance_days.rds")
+
+```
+
+
+```{r}
+# Construct Capped Portfolio and Determine Performance for ALSI
+
+reb_ALSI <- T40 %>% 
+    
+    filter(date %in% RebDays$date) %>% 
+    
+# Now we have to distinguish rebalances - to create something
+# to group by:
+    
+    mutate(RebalanceTime = format(date, "%Y%B")) %>% 
+    
+    select(date, Tickers, Return, J200, RebalanceTime) %>% 
+    
+    rename(weight = J200) %>% 
+    
+    mutate(weight = coalesce(weight , 0))
+  
+# Apply Proportional_Cap_Foo to ALSI to get capped return for cap of 10%
+
+Capped_df <- reb_ALSI %>% 
+    
+    group_split(RebalanceTime) %>% 
+    
+    map_df(~Proportional_Cap_Foo(., W_Cap = 0.1) ) %>% 
+    
+    select(-RebalanceTime)
+ 
+
+ALSI_wts <- Capped_df %>% 
+    
+    tbl_xts(cols_to_xts = weight, spread_by = Tickers)
+
+
+ALSI_rts <- T40 %>% 
+    
+    filter(Tickers %in% unique(Capped_df$Tickers)) %>% 
+    
+    tbl_xts(cols_to_xts = Return, spread_by = Tickers)
+
+
+ALSI_wts[is.na(ALSI_wts)] <- 0
+
+ALSI_rts[is.na(ALSI_rts)] <- 0
+
+
+ALSI_capped <- rmsfuns::Safe_Return.portfolio(R = ALSI_rts, weights = ALSI_wts, 
+    lag_weights = T) %>% 
+    
+    xts_tbl() %>% 
+    
+    rename(ALSI = portfolio.returns)
+
+# Construct Capped Portfolio and Determine Performance for SWIX
+
+reb_SWIX <- T40 %>% 
+    
+    filter(date %in% RebDays$date) %>%
+    
+    mutate(RebalanceTime = format(date, "%Y%B")) %>%
+    
+    select(date, Tickers, Return, J400, RebalanceTime) %>% 
+    
+    rename(weight = J400) %>% 
+    
+    mutate(weight = coalesce(weight , 0))
+  
+# Apply Proportional_Cap_Foo to ALSI to get capped return for cap of 6%
+
+Capped_df <- reb_SWIX %>% 
+    
+    group_split(RebalanceTime) %>% 
+    
+    map_df(~Proportional_Cap_Foo(., W_Cap = 0.06) ) %>% 
+    
+    select(-RebalanceTime)
+ 
+
+SWIX_wts <- Capped_df %>% 
+    
+    tbl_xts(cols_to_xts = weight, spread_by = Tickers)
+
+
+SWIX_rts <- T40 %>% 
+    
+    filter(Tickers %in% unique(Capped_df$Tickers)) %>%
+    
+    tbl_xts(cols_to_xts = Return, spread_by = Tickers)
+
+
+SWIX_wts[is.na(SWIX_wts)] <- 0
+
+SWIX_rts[is.na(SWIX_rts)] <- 0
+
+
+SWIX_capped <- rmsfuns::Safe_Return.portfolio(R = SWIX_rts, weights = SWIX_wts, 
+    lag_weights = T) %>% 
+    
+    xts_tbl() %>% 
+    
+rename(SWIX = portfolio.returns)
+
+
+# Combine and Plot Performance
+
+capped_indices <- left_join(ALSI_capped, SWIX_capped, by = "date") %>% 
+    
+    pivot_longer(c("ALSI", "SWIX"), names_to = "Meth", values_to = "returns")
+
+# Calculate Uncapped Return for ALSI
+ALSI_wts <- T40 %>% 
+    
+    filter(date %in% RebDays$date) %>%
+    
+    mutate(RebalanceTime = format(date, "%Y%B")) %>% 
+    
+    rename(weight = J200) %>% 
+    
+    mutate(weight = coalesce(weight , 0)) %>%
+    
+    select(date, Tickers, Return, weight, RebalanceTime) %>% 
+    
+    tbl_xts(cols_to_xts = weight, spread_by = Tickers)
+
+
+ALSI_wts[is.na(ALSI_wts)] <- 0
+
+ALSI_rts[is.na(ALSI_rts)] <- 0
+
+ALSI_capped <- rmsfuns::Safe_Return.portfolio(R = ALSI_rts, weights = ALSI_wts, 
+    lag_weights = T) %>% 
+    
+    xts_tbl() %>% 
+    
+rename(ALSI = portfolio.returns)
+
+# Calculate Uncapped Return for SWIX
+ 
+SWIX_wts <- T40 %>% 
+    
+    filter(date %in% RebDays$date) %>% 
+    
+    mutate(RebalanceTime = format(date, "%Y%B")) %>% 
+    
+    rename(weight = J400) %>% 
+    
+    mutate(weight = coalesce(weight , 0)) %>% 
+    
+    select(date, Tickers, Return, weight, RebalanceTime) %>% 
+    
+    tbl_xts(cols_to_xts = weight, spread_by = Tickers)
+
+
+SWIX_wts[is.na(SWIX_wts)] <- 0
+
+SWIX_rts[is.na(SWIX_rts)] <- 0
+
+SWIX_capped <- rmsfuns::Safe_Return.portfolio(R = SWIX_rts, weights = SWIX_wts, 
+    lag_weights = T) %>% 
+    
+    xts_tbl() %>% 
+    
+rename(SWIX = portfolio.returns)
+
+# Combine and Plot
+
+ALSI_SWIX <- left_join(ALSI_capped, SWIX_capped, by = "date") %>% 
+    
+    pivot_longer(c("ALSI", "SWIX"), names_to = "Meth", values_to = "Returns")
+
+q2_p3 <- capped_indices %>% 
+    
+    group_by(Meth) %>%
+    
+    mutate(Idx = cumprod(1 + returns)) %>% 
+    
+ggplot() + 
+    
+geom_line(aes(date, Idx, colour = Meth), alpha = 0.8) + 
+    
+labs(subtitle = "ALSI capped at 10% and SWIX at 6%", 
+    x = "", y = "Cumulative Return") +
+    
+    fmx_cols() + 
+    
+fmxdat::theme_fmx(subtitle.size = ggpts(20))
+
+
+q2_p4 <- ALSI_SWIX %>% 
+    
+    group_by(Meth) %>%
+    
+    mutate(Idx = cumprod(1 + Returns)) %>% 
+    
+ggplot() + 
+    
+geom_line(aes(date, Idx, colour = Meth), alpha = 0.8) + 
+    
+labs(subtitle = "Uncapped Index Calculation for ALSI and SWIX", 
+    x = "", y = "Cumulative Return") + 
+    
+    fmx_cols() +
+    
+fmxdat::theme_fmx(subtitle.size = ggpts(20))
+
+plot_grid(finplot(q2_p3), finplot(q2_p4), labels = list(title = "Comparing Capped and Uncapped returns of ALSI and SWIX"), label_size = ggpts(30), align = "h")
 
 
 
+
+
+```
 
 
 
