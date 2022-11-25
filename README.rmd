@@ -4,21 +4,123 @@ output:
     variant: markdown_github
 ---
 
-# Purpose
-
-Purpose of this work folder.
-
-Ideally store a minimum working example data set in data folder.
-
-Add binary files in bin, and closed R functions in code. Human Readable settings files (e.g. csv) should be placed in settings/
+This is my README for the Financial Econometrics Practical Exam 2022
 
 
 ```{r}
 
-rm(list = ls()) # Clean your environment:
-gc() # garbage collection - It can be useful to call gc after a large object has been removed, as this may prompt R to return memory to the operating system.
+#rm(list = ls()) 
+#gc() 
+
 library(tidyverse)
+pacman::p_load(cowplot, glue)
+
 list.files('code/', full.names = T, recursive = T) %>% .[grepl('.R', .)] %>% as.list() %>% walk(~source(.))
+
 ```
+
+# Question 1: Yield Spreads
+
+## Import Data
+
+```{r}
+
+SA_bonds <- read_rds("data/SA_Bonds.rds")
+
+BE_Inflation <- read_rds("data/BE_Infl.rds")
+
+bonds_2y <- read_rds("data/bonds_2y.rds")
+
+bonds_10y <- read_rds("data/bonds_10y.rds")
+
+usdzar <- read_rds("data/usdzar.rds")
+
+ZA_Inflation <- read_rds("data/ZA_Infl.rds")
+
+IV <- read_rds("data/IV.rds")
+
+```
+
+## Compare spreads
+
+```{r}
+
+pacman::p_load(fmxdat)
+
+# Sort data and calculate spreads.
+
+SA_Spreads <- SA_bonds %>% 
+    
+    arrange(date) %>% 
+    
+    group_by(date) %>% 
+    
+    mutate("10Yr2Yr" = ZA_10Yr - ZA_2Yr) %>% 
+    
+    mutate("10Yr3M" = ZA_10Yr - SA_3M) %>% 
+    
+    mutate("2Yr3M" = ZA_2Yr - SA_3M) %>% 
+
+    ungroup() %>% 
+    
+    pivot_longer(c("10Yr2Yr", "10Yr3M", "2Yr3M"), names_to = "Spreads", values_to = "Rates") %>% 
+    
+    filter(date >= as.Date("2000/01/01"))
+
+```
+
+# Plot the spreads
+
+```{r}
+
+SA_Spread_plot <- SA_Spreads %>% 
+    
+    ggplot() +
+    
+    geom_line(aes(date, Rates, colour = Spreads), alpha = 0.8) +
+    
+    labs(title = "Yeild Spread in Local Bond Market", 
+         
+         subtitle = "3 Month, 2 Year and 10 year bond yields",
+         
+         y = "Yield Spread", x ="") +
+    
+    fmxdat::theme_fmx() + 
+    
+    fmxdat::fmx_cols()
+
+
+fmxdat::finplot(SA_Spread_plot, x.date.type = "%Y%m", x.vert = TRUE)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
