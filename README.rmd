@@ -203,6 +203,93 @@ fmxdat::finplot(Spread_Infl_plot, x.date.type = "%Y%m", x.vert = TRUE)
 ```
 
 
+# Compare to International Spreads
+
+```{r}
+
+#bonds_10y %>% pull(Name) %>% unique()
+
+Names_2yr <- c("Philippines_2yr", "Germany_2yr", "US_2yr")
+
+Names_10yr <- c("Philippines_10Yr", "Germany_10Yr", "US_10Yr")
+
+
+bonds_2y10y_combine <-  bonds_2y %>% 
+    
+    arrange(date) %>% 
+    
+    group_by(date) %>% 
+    
+    filter(date >= as.Date("2000/01/01")) %>%
+    
+    filter(Name %in% Names_2yr) %>% 
+    
+    spread(Name, Bond_2Yr) %>% 
+    
+    ungroup() %>% 
+    
+    left_join(., bonds_10y %>% 
+                  
+    arrange(date) %>% 
+    
+    group_by(date) %>% 
+    
+    filter(date >= as.Date("2000/01/01")) %>%
+    
+    filter(Name %in% Names_10yr) %>% 
+    
+    spread(Name, Bond_10Yr) %>% 
+    
+    ungroup())
+
+bonds_2y10y_spread <- bonds_2y10y_combine %>% 
+    
+    group_by(date) %>% 
+    
+    mutate(US_10Yr2Yr = US_10Yr - US_2yr, 
+           PHILL_10Yr2Yr = Philippines_10Yr - Philippines_2yr,
+           Germany_10Yr2Yr = Germany_10Yr - Germany_2yr) %>% 
+    
+    ungroup() %>% 
+    
+    inner_join(.,SA_bonds %>% 
+    
+    arrange(date) %>% 
+    
+    group_by(date) %>% 
+    
+    mutate("SA_10Yr2Yr" = ZA_10Yr - ZA_2Yr) %>% 
+    
+    filter(date >= as.Date("2000/01/01"))) %>% 
+    
+    select(date, SA_10Yr2Yr, US_10Yr2Yr,PHILL_10Yr2Yr, Germany_10Yr2Yr) %>% 
+    
+    pivot_longer(c("US_10Yr2Yr", 
+                   "PHILL_10Yr2Yr", 
+                   "Germany_10Yr2Yr",
+                   "SA_10Yr2Yr"), 
+                 names_to = "Spreads", values_to = "Rates") 
+
+# Plot the spreads
+
+compare_spread_plot <- bonds_2y10y_spread %>% 
+    
+    arrange(date) %>% 
+    
+    ggplot() +
+    
+    geom_line(aes(date, Rates, colour = Spreads), alpha = 0.8) +
+    
+    labs(title = "Relative Long Term Spreads", 
+         y = "Spreads (Yields)", x ="", 
+         subtitle = "Includes US, Philippines, Germany and SA") +
+    
+    fmxdat::theme_fmx(title.size = ggpts(25), subtitle.size = ggpts(18), legend.size = ggpts(15)) + 
+    
+    fmxdat::fmx_cols()
+
+fmxdat::finplot(compare_spread_plot, x.date.type = "%Y%m", x.vert = TRUE)
+```
 
 
 
