@@ -267,7 +267,7 @@ bonds_2y10y_spread <- bonds_2y10y_combine %>%
     select(date, SA_10Yr2Yr, US_10Yr2Yr,PHILL_10Yr2Yr, Germany_10Yr2Yr) %>% 
     
     pivot_longer(c("US_10Yr2Yr", 
-                   "PHILL_10Yr2Yr", 
+                   #"PHILL_10Yr2Yr", 
                    "Germany_10Yr2Yr",
                    "SA_10Yr2Yr"), 
                  names_to = "Spreads", values_to = "Rates") 
