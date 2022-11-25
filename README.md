@@ -97,3 +97,112 @@ fmxdat::finplot(SA_Spread_plot, x.date.type = "%Y%m", x.vert = TRUE)
 
 I can confirm that bond yields have since 2020 been the highest in two
 decades.
+
+``` r
+library(dplyr)
+library(tidyr)
+pacman::p_load(lubridate)
+
+# Lets combine ZA and BE inflation (Monthly)
+# Note: BE starting date (2012-05-07)
+
+BE_Inflation_clean <- BE_Inflation %>% 
+    
+    arrange(date) %>% 
+    
+    rename(BE_Inflation = Price) %>% 
+    
+    select(-Name) %>%  
+                  
+    filter(date >= as.Date("2012/05/07")) %>% 
+    
+    mutate(YM = format(date, "%Y%m")) %>%
+    
+    group_by(YM) %>% 
+    
+    filter(date == last(date)) %>% 
+    
+    select(-date) %>% 
+    
+    ungroup()
+
+
+ZA_Inflation_clean <- ZA_Inflation %>% 
+                  
+        arrange(date) %>%
+            
+        rename(ZAR_Infl = Price) %>% 
+            
+        select(-Name) %>% 
+            
+        filter(date >= as.Date("2012/05/07")) %>% 
+    
+        mutate(YM = format(date, "%Y%m")) %>%
+    
+        group_by(YM) %>% 
+    
+        filter(date == last(date)) %>% 
+    
+        select(-date) %>% 
+            
+        ungroup() 
+        
+ZA_BE_Inflation <- BE_Inflation_clean %>% 
+    
+    inner_join(ZA_Inflation_clean) %>% 
+    
+    inner_join(.,SA_bonds %>% 
+    
+    arrange(date) %>% 
+    
+    group_by(date) %>% 
+    
+    mutate("10Yr2Yr" = ZA_10Yr - ZA_2Yr) %>% 
+        
+        filter(date >= as.Date("2012/05/07")) %>% 
+    
+        mutate(YM = format(date, "%Y%m")) %>%
+    
+        group_by(YM) %>% 
+    
+        filter(date == last(date)) %>% 
+    
+        select(-date, -SA_3M, -ZA_10Yr, -ZA_2Yr) %>% 
+            
+    ungroup()) 
+```
+
+    ## Joining, by = "YM"
+    ## Joining, by = "YM"
+
+``` r
+ZA_BE_Inflation <- ZA_BE_Inflation %>% 
+    
+    pivot_longer(c("10Yr2Yr", "BE_Inflation", "ZAR_Infl"),
+                 
+                 names_to = "Spreads", values_to = "Rates") %>%
+    
+    mutate(date = ym(YM))
+
+# Plot 
+
+Spread_Infl_plot <- ZA_BE_Inflation %>%
+    
+    ggplot() +
+    
+    geom_line(aes(date, Rates, colour = Spreads), alpha = 0.8) +
+    
+    labs(title = "SA 10 year Spread and Inflation",
+         
+         y = "Yield Spreads", x ="", 
+         
+         subtitle = "Includes Inflation, Break-Even 10 Year Inflation and 10/2 year yield spread") +
+    
+    fmxdat::theme_fmx(title.size = ggpts(25), subtitle.size = ggpts(20)) + 
+    
+    fmxdat::fmx_cols()
+
+fmxdat::finplot(Spread_Infl_plot, x.date.type = "%Y%m", x.vert = TRUE)
+```
+
+![](README_files/figure-markdown_github/unnamed-chunk-5-1.png)
