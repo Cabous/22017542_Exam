@@ -37,6 +37,11 @@ library(factoextra)
 
 ``` r
 pacman::p_load(cowplot, glue, tbl2xts)
+pacman::p_load("MTS", "robustbase")
+
+pacman::p_load("tidyverse", "devtools", "rugarch", "rmgarch", 
+     "forecast", "tbl2xts", "lubridate", "PerformanceAnalytics", 
+     "ggthemes", "dplyr", "cowplot", "fmxdat") 
 
 list.files('C:/Users/Cabous/OneDrive/Desktop/22017542_Exam/code/', full.names = T, recursive = T) %>% .[grepl('.R', .)] %>% as.list() %>% walk(~source(.))
 ```
@@ -1031,3 +1036,341 @@ fviz_contrib(pca, choice = "var", axes = 2, top = 10)
 ```
 
 ![](README_files/figure-markdown_github/unnamed-chunk-14-4.png)
+
+# Question 5
+
+``` r
+# Load Data
+
+cncy <- read_rds("data/currencies.rds")
+
+cncy_Carry <- read_rds("data/cncy_Carry.rds")
+
+cncy_value <- read_rds("data/cncy_value.rds")
+
+cncyIV <- read_rds("data/cncyIV.rds")
+
+bbdxy <- read_rds("data/bbdxy.rds")
+```
+
+## Volatility
+
+``` r
+## To analyse whether the Rand is volatile lets look at Implied volatility
+# What cuurencies are in the data?
+
+cncyIV %>% group_by(Name) %>% pull(Name) %>% unique 
+```
+
+    ##  [1] "Australia_IV"   "Brazil_IV"      "Canada_IV"      "Chile_IV"      
+    ##  [5] "China_IV"       "Columbia_IV"    "Czech_IV"       "Denmark_IV"    
+    ##  [9] "EU_IV"          "HongKong_IV"    "Hungary_IV"     "India_IV"      
+    ## [13] "Israel_IV"      "Japan_IV"       "Malaysia_IV"    "Mexico_IV"     
+    ## [17] "Norway_IV"      "NZ_IV"          "Peru_IV"        "Philipines_IV" 
+    ## [21] "Poland_IV"      "Romania_IV"     "Russia_IV"      "Saudi_IV"      
+    ## [25] "Singapore_IV"   "SouthAfrica_IV" "SouthKorea_IV"  "Sweden_IV"     
+    ## [29] "Taiwan_IV"      "Thailand_IV"    "Turkey_IV"      "UK_IV"
+
+``` r
+IV_plot <- cncyIV %>% 
+    
+    filter(Name==c("China_IV", "India_IV", "SouthAfrica_IV",
+                   "UK_IV", "EU_IV", "Singapore_IV")) %>%
+    
+    filter(date > as.Date("1999-12-31")) %>% 
+    
+    group_by(date) %>%
+    
+    ggplot() + 
+    
+    geom_line(aes(x=date, y=Price, color=Name)) +
+    
+    theme_bw() +  
+    
+    labs(x = "Dates", y = "Price (relative to USD)",
+         
+         title = "Implied Volatility ", subtitle = "",
+         
+         caption = "Note:\nOwn Calculations") +
+    
+    guides(col=guide_legend("Currency"))
+```
+
+    ## Warning in Name == c("China_IV", "India_IV", "SouthAfrica_IV", "UK_IV", : longer
+    ## object length is not a multiple of shorter object length
+
+``` r
+IV_plot
+```
+
+![](README_files/figure-markdown_github/unnamed-chunk-17-1.png)
+
+This suggests that the market foresees the highest future volatility for
+the Rand, for this sub-sample.
+
+``` r
+# Calculating Returns and Cleaning
+
+zar_rtn <- cncy %>% 
+    
+    arrange(date) %>% 
+    
+    filter(date > as.Date("1999-12-31")) %>% 
+    
+    filter(Name %in% "SouthAfrica_Cncy") %>% 
+    
+    mutate(Price = na.locf(Price)) %>% 
+    
+    mutate(dlogret = log(Price) - log(lag(Price))) %>% 
+    
+    mutate(scaledret = (dlogret - mean(dlogret, na.rm = T))) %>% 
+    
+    filter(date > dplyr::first(date)) 
+
+xts_zar_rtn <- zar_rtn %>% 
+    
+    tbl_xts(., cols_to_xts = "dlogret", spread_by = "Name")
+```
+
+    ## The spread_by column only has one category. 
+    ## Hence only the column name was changed...
+
+``` r
+MarchTest(xts_zar_rtn)
+```
+
+    ## Q(m) of squared series(LM test):  
+    ## Test statistic:  1016.07  p-value:  0 
+    ## Rank-based Test:  
+    ## Test statistic:  421.1523  p-value:  0 
+    ## Q_k(m) of squared series:  
+    ## Test statistic:  1012.159  p-value:  0 
+    ## Robust Test(5%) :  210.8329  p-value:  0
+
+``` r
+xts_zar_rtn[is.na(xts_zar_rtn)] <- 0
+
+PlotRtn = cbind(xts_zar_rtn, xts_zar_rtn^2, abs(xts_zar_rtn))
+
+colnames(PlotRtn) = c("Returns", "Returns_Sqd", "Returns_Abs")
+
+PlotRtn <- PlotRtn %>% 
+    
+    xts_tbl() %>%
+    
+    gather(ReturnType, Returns, -date) 
+
+# Plot
+
+ggplot(PlotRtn) + 
+    
+    geom_line(aes(x = date, y = Returns, colour = ReturnType, alpha = 0.5)) + 
+    
+    ggtitle("Return Type Persistence: USD/ZAR") + 
+    
+    facet_wrap(~ReturnType, nrow = 3, ncol = 1, scales = "free") + 
+    
+    guides(alpha = "none", colour = "none") + 
+    
+    fmxdat::theme_fmx()
+```
+
+![](README_files/figure-markdown_github/unnamed-chunk-19-1.png)
+
+``` r
+forecast::Acf(xts_zar_rtn, main = "ACF: Equally Weighted Return")
+```
+
+![](README_files/figure-markdown_github/unnamed-chunk-20-1.png)
+
+``` r
+forecast::Acf(xts_zar_rtn, main = "ACF: Equally Weighted Return")
+```
+
+![](README_files/figure-markdown_github/unnamed-chunk-21-1.png)
+
+``` r
+forecast::Acf(xts_zar_rtn^2, main = "ACF: Squared Equally Weighted Return")
+```
+
+![](README_files/figure-markdown_github/unnamed-chunk-22-1.png)
+
+``` r
+forecast::Acf(abs(xts_zar_rtn), main = "ACF: Absolute Equally Weighted Return")
+```
+
+![](README_files/figure-markdown_github/unnamed-chunk-23-1.png)
+
+``` r
+Box.test(coredata(xts_zar_rtn^2), type = "Ljung-Box", lag = 12)
+```
+
+    ## 
+    ##  Box-Ljung test
+    ## 
+    ## data:  coredata(xts_zar_rtn^2)
+    ## X-squared = 1078.3, df = 12, p-value < 0.00000000000000022
+
+# Find best model
+
+``` r
+best_model <- Vol_Model_Sel(zar_rtn)
+
+best_model
+```
+
+    ##                 sGARCH  gjrGARCH    eGARCH    apARCH
+    ## Akaike       -6.397628 -6.400773 -6.399399 -6.396697
+    ## Bayes        -6.391791 -6.393769 -6.392394 -6.388525
+    ## Shibata      -6.397630 -6.400775 -6.399401 -6.396700
+    ## Hannan-Quinn -6.395596 -6.398334 -6.396960 -6.393852
+
+# Fit Model
+
+``` r
+garch_fit_gjrGARCH <- vol_func(zar_rtn, "gjrGARCH")
+
+garch_fit_sGARCH <- vol_func(zar_rtn, "sGARCH")
+
+signbias(garch_fit_sGARCH)
+```
+
+    ##                        t-value          prob sig
+    ## Sign Bias           0.04213364 0.96639363855    
+    ## Negative Sign Bias  3.40498413 0.00066625471 ***
+    ## Positive Sign Bias  0.92248723 0.35631360809    
+    ## Joint Effect       23.82492612 0.00002717301 ***
+
+``` r
+pacman::p_load(xtable)
+Table <- xtable(garch_fit_sGARCH@fit$matcoef)
+
+print(Table, type = "latex", comment = FALSE)
+```
+
+``` r
+#Conditional variance Plot
+
+persistence(garch_fit_sGARCH)
+```
+
+    ## [1] 0.9895234
+
+``` r
+# Persistence is alpha + beta, and it is typically very high and close to 1
+
+# To view the conditional variance plot, use:
+sigma <- sigma(garch_fit_sGARCH) %>% 
+    
+    xts_tbl() 
+
+colnames(sigma) <- c("date", "sigma") 
+
+sigma <- sigma %>% 
+    
+    mutate(date = as.Date(date))
+
+Con_var_plot <- 
+  
+ggplot() + 
+    
+  geom_line(data = PlotRtn %>% filter(ReturnType == "Returns_Sqd") %>% 
+                
+                select(date, Returns) %>% 
+              
+              unique %>% mutate(Returns = sqrt(Returns)), 
+            
+            aes(x = date, y = Returns)) + 
+  
+  geom_line(data = sigma, aes(x = date, y = sigma), 
+            color = "red", size = 2, alpha = 0.8) + 
+  
+  
+  labs(title = "Comparison: Returns Sigma vs Sigma from Garch", 
+       
+       subtitle = "Note the smoothing effect of garch, as noise is controlled for.", x = "", y = "Comparison of estimated volatility",
+       
+       caption = "Source: Fin metrics class | Calculations: Own") + 
+  
+    fmxdat::theme_fmx(CustomCaption = TRUE)
+```
+
+    ## Warning: Using `size` aesthetic for lines was deprecated in ggplot2 3.4.0.
+    ## i Please use `linewidth` instead.
+
+``` r
+fmxdat::finplot(Con_var_plot, y.pct = T, y.pct_acc = 1)
+```
+
+![](README_files/figure-markdown_github/unnamed-chunk-29-1.png)
+
+``` r
+news_plot <- newsimpact(z = NULL, garch_fit_sGARCH)
+
+plot(news_plot$zx, news_plot$zy, ylab = news_plot$yexpr, xlab = news_plot$xexpr, type = "l", 
+    main = "News Impact Curve")
+```
+
+![](README_files/figure-markdown_github/unnamed-chunk-30-1.png)
+
+``` r
+plot(garch_fit_sGARCH, which = "all")
+```
+
+    ## 
+    ## please wait...calculating quantiles...
+
+![](README_files/figure-markdown_github/unnamed-chunk-31-1.png)
+
+``` r
+# Lets investigate further
+# lets compare Smoothed ZAR Vol to mean Global VOL
+
+# Calculate Mean Global VOL
+
+mean_Gvol <- cncyIV %>% 
+    
+    filter(date > as.Date("1999-12-31")) %>% 
+    
+    group_by(date) %>% 
+    
+    summarise(mean_vol = mean(Price)) %>% 
+    
+    mutate(Global_vol = mean_vol/max(mean_vol))
+
+# Wrangle Sigma 
+
+sigma <- sigma %>% 
+    
+    mutate(Date = as.Date(date)) %>% 
+    
+    mutate(ZAR_sigma = sigma/max(sigma))%>%
+    
+    left_join(., mean_Gvol, by = "date")
+
+# Plot 
+
+Vol_compare_plot <- sigma %>% 
+    
+    select(-date) %>% 
+    
+    pivot_longer(c("ZAR_sigma", "Global_vol"), 
+                 names_to = "Vol_type", 
+                 values_to = "VOL") %>%
+    
+    ggplot() +
+    
+    geom_line(aes(Date, VOL, colour = Vol_type)) +
+    
+    labs(title = "ZAR Volatility and Mean Currency Volatility",
+         x = "", 
+         y = "Proprotion of Max Vol") +
+    
+    fmx_cols() +
+    
+    theme_fmx(title.size = ggpts(25)) 
+
+finplot(Vol_compare_plot)
+```
+
+![](README_files/figure-markdown_github/unnamed-chunk-32-1.png)
