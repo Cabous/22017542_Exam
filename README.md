@@ -312,7 +312,7 @@ compare_spread_plot <- bonds_2y10y_spread %>%
          y = "Spreads (Yields)", x ="", 
          subtitle = "Includes US, Philippines, Germany and SA") +
     
-    fmxdat::theme_fmx(title.size = ggpts(25), subtitle.size = ggpts(18), legend.size = ggpts(15)) + 
+    fmxdat::theme_fmx(title.size = ggpts(30), subtitle.size = ggpts(22), legend.size = ggpts(20)) + 
     
     fmxdat::fmx_cols()
 
@@ -330,6 +330,337 @@ T40 <- read_rds("data/T40.rds")
 
 RebDays <- read_rds("data/Rebalance_days.rds")
 ```
+
+``` r
+# First: calculate ordinary returns
+library(lubridate)
+
+#------------------ 
+# Step one: gather to make tidy:
+ 
+# lets try: large caps J200
+
+# First the weights:
+
+W_xts_L200 <- T40 %>% 
+    
+    arrange(date) %>% 
+    
+    select(date, Tickers, Return, Index_Name, J200) %>% 
+    
+    #mutate(J200 = J200*Return) %>% 
+    
+    filter(date >= as.Date("2010/01/01")) %>% 
+    
+    filter(Index_Name == "Large_Caps") %>% 
+    
+    filter(date == first(date)) %>%
+    
+    mutate(weight = 1/n()) %>% 
+    
+    tbl_xts(., cols_to_xts = weight, spread_by = Tickers)
+
+# Now Returns:
+R_xts_L200 <- T40 %>% 
+    
+    arrange(date) %>% 
+    
+    select(date, Tickers, Return, Index_Name, J200) %>%
+    
+    #mutate(J200 = J200*Return) %>% 
+    
+    filter(date >= as.Date("2010/01/01")) %>% 
+    
+    filter(Index_Name == "Large_Caps") %>% 
+    
+    tbl_xts(., cols_to_xts = Return, spread_by = Tickers)
+
+# Now... first ensure that column names between R_xts and
+# W_xts match:
+
+R_xts_L200 <- R_xts_L200[, names(W_xts_L200)]
+
+# Set all NA returns to zero:
+
+R_xts_L200[is.na(R_xts_L200)] <- 0
+
+# Set all NA weights to zero:
+
+W_xts_L200[is.na(W_xts_L200)] <- 0
+
+# Also set NA's to zero:
+
+Portfolio_L200 <- rmsfuns::Safe_Return.portfolio(R = R_xts_L200, weights = W_xts_L200, 
+                                            geometric = TRUE)
+
+Portf_Rets_L200 <- Portfolio_L200$portfolio.returns %>% xts_tbl() 
+
+# Now large caps J400
+
+# First the weights:
+
+W_xts_L400 <- T40 %>% 
+    
+    arrange(date) %>% 
+    
+    select(date, Tickers, Return, Index_Name, J400) %>% 
+    
+    filter(date >= as.Date("2010/01/01")) %>% 
+    
+    #mutate(Return = coalesce(Return, 0)) %>% 
+    
+   # mutate(J400 = J400*Return) %>%
+    
+    filter(Index_Name == "Large_Caps") %>% 
+    
+    filter(date == first(date)) %>%
+    
+    mutate(weight = 1/n()) %>% 
+    
+    tbl_xts(., cols_to_xts = weight, spread_by = Tickers)
+
+# Now Returns:
+R_xts_L400 <- T40 %>% 
+    
+    arrange(date) %>% 
+    
+    select(date, Tickers, Return, Index_Name, J400) %>% 
+    
+    filter(date >= as.Date("2010/01/01")) %>% 
+    
+    filter(Index_Name == "Large_Caps") %>% 
+    
+    tbl_xts(., cols_to_xts = Return, spread_by = Tickers)
+
+# Now... first ensure that column names between R_xts and
+# W_xts match:
+
+R_xts_L400 <- R_xts_L400[, names(W_xts_L400)]
+
+# Set all NA returns to zero:
+
+R_xts_L400[is.na(R_xts_L400)] <- 0
+
+# Set all NA weights to zero:
+
+W_xts_L400[is.na(W_xts_L400)] <- 0
+
+# Also set NA's to zero:
+
+Portfolio_L400 <- rmsfuns::Safe_Return.portfolio(R = R_xts_L400, weights = W_xts_L400, 
+                                            geometric = TRUE)
+
+Portf_Rets_L400 <- Portfolio_L400$portfolio.returns %>% xts_tbl()
+
+# Join L200 and L400 to plot
+
+Portf_Rets_L200 <- Portf_Rets_L200 %>% mutate(Index = "J200") 
+    
+Portf_Rets_L400 <- Portf_Rets_L400 %>% mutate(Index = "J400") 
+
+# combine
+
+Portf_Rets_L <- rbind.data.frame(Portf_Rets_L200, Portf_Rets_L400)
+
+# Plot
+Portf_Rets_L %>% 
+    
+    arrange(date) %>% 
+    
+# Set NA Rets to zero to make cumprod work:
+#mutate(Rets = coalesce(ret, 0)) %>% 
+    
+    mutate(CP = cumprod(1 + portfolio.returns)) %>% 
+    
+    ungroup() %>% 
+    
+   # arrange(date) %>% 
+    
+    ggplot() +
+    
+    geom_line(aes(date, CP, color = Index), alpha = 0.8) +
+    
+    labs(title = "Cumulative Returns per Index for ALSI and SWIX",
+         subtitle = "Large Caps",
+         y = "Cumulative Returns", x ="") +
+    
+    fmxdat::theme_fmx(title.size = ggpts(30), subtitle.size = ggpts(25), legend.size = ggpts(20))
+```
+
+![](README_files/figure-markdown_github/unnamed-chunk-8-1.png)
+
+``` r
+###############################################################
+
+# Mid-Caps
+
+W_xts_M200 <- T40 %>% 
+    
+    arrange(date) %>% 
+    
+    select(date, Tickers, Return, Index_Name, J200) %>% 
+    
+    #mutate(J200 = J200*Return) %>% 
+    
+    filter(date >= as.Date("2008/01/01")) %>% 
+    
+    filter(Index_Name == "Small_Caps") %>% 
+    
+    filter(date == first(date)) %>%
+    
+    mutate(weight = 1/n()) %>% 
+    
+    tbl_xts(., cols_to_xts = weight, spread_by = Tickers)
+```
+
+    ## The spread_by column only has one category. 
+    ## Hence only the column name was changed...
+
+``` r
+# Now Returns:
+R_xts_M200 <- T40 %>% 
+    
+    arrange(date) %>% 
+    
+    select(date, Tickers, Return, Index_Name, J200) %>%
+    
+    filter(date >= as.Date("2008/01/01")) %>% 
+    
+    filter(Index_Name == "Small_Caps") %>%
+    
+    na.locf(.,na.rm=T, 10) %>%
+    
+    tbl_xts(., cols_to_xts = Return, spread_by = Tickers)
+```
+
+    ## The spread_by column only has one category. 
+    ## Hence only the column name was changed...
+
+``` r
+# Now... first ensure that column names between R_xts and
+# W_xts match:
+
+R_xts_M200 <- R_xts_M200[, names(W_xts_M200)]
+
+# Set all NA returns to zero:
+
+R_xts_M200[is.na(R_xts_M200)] <- 0
+
+# Set all NA weights to zero:
+
+W_xts_M200[is.na(W_xts_M200)] <- 0
+
+# Also set NA's to zero:
+
+Portfolio_M200 <- rmsfuns::Safe_Return.portfolio(R = R_xts_M200, weights = W_xts_M200, 
+                                            geometric = TRUE)
+
+Portf_Rets_M200 <- Portfolio_M200$portfolio.returns %>% xts_tbl() 
+
+# Now large caps J400
+
+# First the weights:
+
+W_xts_M400 <- T40 %>% 
+    
+    arrange(date) %>% 
+    
+    select(date, Tickers, Return, Index_Name, J400) %>% 
+    
+    filter(date >= as.Date("2008/01/01")) %>% 
+    
+    #mutate(Return = coalesce(Return, 0)) %>% 
+    
+   # mutate(J400 = J400*Return) %>%
+    
+    filter(Index_Name == "Small_Caps") %>% 
+    
+    filter(date == first(date)) %>%
+    
+    mutate(weight = 1/n()) %>% 
+    
+    tbl_xts(., cols_to_xts = weight, spread_by = Tickers)
+```
+
+    ## The spread_by column only has one category. 
+    ## Hence only the column name was changed...
+
+``` r
+# Now Returns:
+R_xts_M400 <- T40 %>% 
+    
+    arrange(date) %>% 
+    
+    select(date, Tickers, Return, Index_Name, J400) %>% 
+    
+    filter(date >= as.Date("2008/01/01")) %>% 
+    
+    filter(Index_Name == "Small_Caps") %>%
+    
+    na.locf(.,na.rm=T, 10) %>% 
+    
+    tbl_xts(., cols_to_xts = Return, spread_by = Tickers)
+```
+
+    ## The spread_by column only has one category. 
+    ## Hence only the column name was changed...
+
+``` r
+# Now... first ensure that column names between R_xts and
+# W_xts match:
+
+R_xts_M400 <- R_xts_M400[, names(W_xts_M400)]
+
+# Set all NA returns to zero:
+
+R_xts_M400[is.na(R_xts_M400)] <- 0
+
+# Set all NA weights to zero:
+
+W_xts_M400[is.na(W_xts_M400)] <- 0
+
+# Also set NA's to zero:
+
+Portfolio_M400 <- rmsfuns::Safe_Return.portfolio(R = R_xts_M400, weights = W_xts_M400, 
+                                            geometric = TRUE)
+
+Portf_Rets_M400 <- Portfolio_M400$portfolio.returns %>% xts_tbl()
+
+# Join L200 and L400 to plot
+
+Portf_Rets_M200 <- Portf_Rets_M200 %>% mutate(Index = "J200") 
+    
+Portf_Rets_M400 <- Portf_Rets_M400 %>% mutate(Index = "J400") 
+
+# combine
+
+Portf_Rets_M <- rbind.data.frame(Portf_Rets_M200, Portf_Rets_M400)
+
+# Plot
+Portf_Rets_M %>% 
+    
+    arrange(date) %>% 
+    
+# Set NA Rets to zero to make cumprod work:
+#mutate(Rets = coalesce(ret, 0)) %>% 
+    
+    mutate(CP = cumprod(1 + portfolio.returns)) %>% 
+    
+    ungroup() %>% 
+    
+   # arrange(date) %>% 
+    
+    ggplot() +
+    
+    geom_line(aes(date, CP, color = Index), alpha = 0.8)+
+    labs(title = "Cumulative Returns per Index for ALSI and SWIX",
+         subtitle = "Small Caps",
+         y = "Cumulative Returns", x ="") +
+    
+    fmxdat::theme_fmx(title.size = ggpts(30), subtitle.size = ggpts(25), legend.size = ggpts(20))
+```
+
+![](README_files/figure-markdown_github/unnamed-chunk-8-2.png)
 
 ``` r
 # Construct Capped Portfolio and Determine Performance for ALSI
@@ -550,7 +881,7 @@ fmxdat::theme_fmx(subtitle.size = ggpts(20))
 plot_grid(finplot(q2_p3), finplot(q2_p4), labels = list(title = "Comparing Capped and Uncapped returns of ALSI and SWIX"), label_size = ggpts(30), align = "h")
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-8-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-9-1.png)
 
 # Question 4
 
@@ -612,22 +943,22 @@ pca <- prcomp(return_mat_Nodate,center=TRUE, scale.=TRUE)
 fviz_screeplot(pca, ncp = 10)
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-11-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-12-1.png)
 
 ``` r
 fviz_pca_var(pca, col.var = "steelblue") + theme_minimal()
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-11-2.png)
+![](README_files/figure-markdown_github/unnamed-chunk-12-2.png)
 
 ``` r
 fviz_contrib(pca, choice = "var", axes = 1, top = 10)
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-11-3.png)
+![](README_files/figure-markdown_github/unnamed-chunk-12-3.png)
 
 ``` r
 fviz_contrib(pca, choice = "var", axes = 2, top = 10)
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-11-4.png)
+![](README_files/figure-markdown_github/unnamed-chunk-12-4.png)
