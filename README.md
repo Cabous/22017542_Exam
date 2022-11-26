@@ -891,6 +891,75 @@ plot_grid(finplot(q2_p3), finplot(q2_p4), labels = list(title = "Comparing Cappe
 T40 <- read_rds("data/T40.rds")
 ```
 
+``` r
+T40_Q4 <- T40 %>% 
+    
+    na.locf(.,na.rm=T, 5) %>%
+    
+    select(date, Tickers, Return, J200) %>%
+    
+    mutate(Return = Return*J200) %>%
+    
+    select(date, Tickers, Return) %>% 
+    
+    group_by(Tickers) %>%
+    
+    mutate(Tickers = gsub(" SJ Equity", "", Tickers)) %>% 
+    
+    ungroup()
+```
+
+-   Calculate Rolling Correlation
+
+``` r
+# Calculate rolling constituent correlation
+
+df_Q4 <- T40_Q4
+
+#df_Q4 %>% head(5) %>% pretty_table()
+
+# rolling correlation calculation
+
+pairwise_corrs <- rolling_cor_func(df_Q4, 90) %>% 
+    
+    ungroup() %>%
+    
+    filter(date > as.Date("2012/03/28"))
+
+# Determine Mean 
+
+Mean_pair_cor <- pairwise_corrs %>% 
+    
+    group_by(Tickers) %>% 
+    
+    summarise(Mean_Cor = mean(rollingcor)) 
+
+
+# Plot Mean over time
+mean_pw_cors <- pairwise_corrs %>%
+    
+  group_by(date) %>%
+    
+  summarise(mean_pw_corr = mean(rollingcor, na.rm = TRUE))
+
+mean_cor_plot <- mean_pw_cors %>% 
+    
+    ggplot() + 
+    
+    geom_line(aes(date, mean_pw_corr), alpha = 0.8, color ="steelblue") +
+    
+    fmx_cols() + 
+    
+    theme_fmx(title = ggpts(25)) + 
+    
+    labs(y = "Rolling Mean Constituent Correlation", 
+         x = "", title = "90-day Mean Rolling Constituent Correlation")
+
+finplot(mean_cor_plot)
+```
+
+![](README_files/figure-markdown_github/unnamed-chunk-12-1.png)
+
 # Calculate Returns
 
 ``` r
@@ -943,22 +1012,22 @@ pca <- prcomp(return_mat_Nodate,center=TRUE, scale.=TRUE)
 fviz_screeplot(pca, ncp = 10)
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-12-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-14-1.png)
 
 ``` r
 fviz_pca_var(pca, col.var = "steelblue") + theme_minimal()
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-12-2.png)
+![](README_files/figure-markdown_github/unnamed-chunk-14-2.png)
 
 ``` r
 fviz_contrib(pca, choice = "var", axes = 1, top = 10)
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-12-3.png)
+![](README_files/figure-markdown_github/unnamed-chunk-14-3.png)
 
 ``` r
 fviz_contrib(pca, choice = "var", axes = 2, top = 10)
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-12-4.png)
+![](README_files/figure-markdown_github/unnamed-chunk-14-4.png)

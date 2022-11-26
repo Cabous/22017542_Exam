@@ -854,11 +854,61 @@ T40_Q4 <- T40 %>%
     
     ungroup()
 
+```
+
+* Calculate Rolling Correlation
+
+
+```{r}
+
+# Calculate rolling constituent correlation
+
 df_Q4 <- T40_Q4
 
-df_Q4 %>% head(5) %>% pretty_table()
+#df_Q4 %>% head(5) %>% pretty_table()
+
+# rolling correlation calculation
+
+pairwise_corrs <- rolling_cor_func(df_Q4, 90) %>% 
+    
+    ungroup() %>%
+    
+    filter(date > as.Date("2012/03/28"))
+
+# Determine Mean 
+
+Mean_pair_cor <- pairwise_corrs %>% 
+    
+    group_by(Tickers) %>% 
+    
+    summarise(Mean_Cor = mean(rollingcor)) 
+
+
+# Plot Mean over time
+mean_pw_cors <- pairwise_corrs %>%
+    
+  group_by(date) %>%
+    
+  summarise(mean_pw_corr = mean(rollingcor, na.rm = TRUE))
+
+mean_cor_plot <- mean_pw_cors %>% 
+    
+    ggplot() + 
+    
+    geom_line(aes(date, mean_pw_corr), alpha = 0.8, color ="steelblue") +
+    
+    fmx_cols() + 
+    
+    theme_fmx(title = ggpts(25)) + 
+    
+    labs(y = "Rolling Mean Constituent Correlation", 
+         x = "", title = "90-day Mean Rolling Constituent Correlation")
+
+finplot(mean_cor_plot)
+
 
 ```
+
 
 # Calculate Returns
 
