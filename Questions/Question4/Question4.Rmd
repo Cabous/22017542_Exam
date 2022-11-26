@@ -141,7 +141,9 @@ T40_Q4 <- T40 %>%
     
     group_by(Tickers) %>%
     
-    mutate(Tickers = gsub(" SJ Equity", "", Tickers))
+    mutate(Tickers = gsub(" SJ Equity", "", Tickers)) %>% 
+    
+    ungroup()
 
 # PCA using princomp
 
@@ -189,8 +191,21 @@ fviz_contrib(pca, choice = "var", axes = 1, top = 10)
 fviz_contrib(pca, choice = "var", axes = 2, top = 10)
 ```
 
+* Calculate Rolling Correlation
+# Calculate rolling constituent correlation
+
+```{r}
+df_Q4 <- T40_Q4
+
+df_Q4 %>% head(5) %>% pretty_table()
+
+ 
+
+# Create rolling constituent correlation function (Found at https://robotwealth.com/rolling-mean-correlations-in-the-tidyverse/)
 
 
+
+```
 
 
 
