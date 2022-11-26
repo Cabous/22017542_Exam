@@ -1374,3 +1374,454 @@ finplot(Vol_compare_plot)
 ```
 
 ![](README_files/figure-markdown_github/unnamed-chunk-32-1.png)
+
+# Question 6
+
+``` r
+# Load Data
+pacman::p_load("MTS", "robustbase")
+pacman::p_load("tidyverse", "devtools", "rugarch", "rmgarch", 
+    "forecast", "tbl2xts", "lubridate", "PerformanceAnalytics", 
+    "ggthemes")
+
+msci <- read_rds("data/msci.rds")
+bonds <- read_rds("data/bonds_10y.rds")
+comms <- read_rds("data/comms.rds")
+```
+
+``` r
+# Lets test for autocorrelation using the March Test
+
+MarchTest(asset_classes_ret)
+```
+
+    ## Q(m) of squared series(LM test):  
+    ## Test statistic:  6266.108  p-value:  0 
+    ## Rank-based Test:  
+    ## Test statistic:  1487.596  p-value:  0 
+    ## Q_k(m) of squared series:  
+    ## Test statistic:  13012.78  p-value:  0 
+    ## Robust Test(5%) :  1770.574  p-value:  0
+
+The MARCH test indicates that all the MV portmanteau tests reject the
+null of no conditional heteroskedasticity, motivating our use of MVGARCH
+models. Let’s set up the model
+
+``` r
+# GARCH specifications
+
+uspec <- ugarchspec(variance.model = list(model = "gjrGARCH", 
+    garchOrder = c(1, 1)), mean.model = list(armaOrder = c(1, 
+    0), include.mean = TRUE), distribution.model = "sstd")
+
+multi_univ_garch_spec <- multispec(replicate(ncol(asset_classes_ret), uspec))
+
+# DCC specifications
+
+spec.dcc = dccspec(multi_univ_garch_spec, dccOrder = c(1, 1), 
+    distribution = "mvnorm", lag.criterion = c("AIC", "HQ", "SC", 
+        "FPE")[1], model = c("DCC", "aDCC")[1])  
+
+# Enable clustering for speed:
+
+cl = makePSOCKcluster(10)
+
+# Fit GARCH
+
+multf = multifit(multi_univ_garch_spec, asset_classes_ret, cluster = cl)
+
+# Fit DCC
+
+fit.dcc = dccfit(spec.dcc, data = asset_classes_ret, solver = "solnp", 
+    cluster = cl, fit.control = list(eval.se = FALSE), fit = multf)
+
+# Check Model
+
+RcovList <- rcov(fit.dcc)
+
+covmat = matrix(RcovList, nrow(asset_classes_ret), ncol(asset_classes_ret) * ncol(asset_classes_ret), 
+    byrow = TRUE)
+
+mc1 = MCHdiag(asset_classes_ret, covmat)
+```
+
+    ## Test results:  
+    ## Q(m) of et: 
+    ## Test and p-value:  67.86301 0.0000000001144478 
+    ## Rank-based test: 
+    ## Test and p-value:  45.01247 0.000002163493 
+    ## Qk(m) of epsilon_t: 
+    ## Test and p-value:  251.1729 0.000005494596 
+    ## Robust Qk(m):  
+    ## Test and p-value:  149.6698 0.7098375
+
+``` r
+# Wrangle output
+dcc.time.var.cor <- rcor(fit.dcc)
+print(dcc.time.var.cor[, , 1:3])
+```
+
+    ## , , 2010-01-01
+    ## 
+    ##           MSCI_ACWI   US_10Yr   MSCI_RE Oil_Brent
+    ## MSCI_ACWI 1.0000000 0.3672945 0.6989608 0.3916873
+    ## US_10Yr   0.3672945 1.0000000 0.1060070 0.2437526
+    ## MSCI_RE   0.6989608 0.1060070 1.0000000 0.2554721
+    ## Oil_Brent 0.3916873 0.2437526 0.2554721 1.0000000
+    ## 
+    ## , , 2010-01-04
+    ## 
+    ##           MSCI_ACWI   US_10Yr   MSCI_RE Oil_Brent
+    ## MSCI_ACWI 1.0000000 0.3669617 0.6988083 0.3913564
+    ## US_10Yr   0.3669617 1.0000000 0.1055386 0.2433507
+    ## MSCI_RE   0.6988083 0.1055386 1.0000000 0.2550748
+    ## Oil_Brent 0.3913564 0.2433507 0.2550748 1.0000000
+    ## 
+    ## , , 2010-01-05
+    ## 
+    ##           MSCI_ACWI   US_10Yr   MSCI_RE Oil_Brent
+    ## MSCI_ACWI 1.0000000 0.3340547 0.6777565 0.4364434
+    ## US_10Yr   0.3340547 1.0000000 0.1027695 0.2291449
+    ## MSCI_RE   0.6777565 0.1027695 1.0000000 0.2623880
+    ## Oil_Brent 0.4364434 0.2291449 0.2623880 1.0000000
+
+``` r
+dcc.time.var.cor <- aperm(dcc.time.var.cor, c(3, 2, 1))
+dim(dcc.time.var.cor) <- c(nrow(dcc.time.var.cor), ncol(dcc.time.var.cor)^2)
+```
+
+``` r
+# Rename Output
+
+dcc.time.var.cor <- renamingdcc(ReturnSeries = asset_classes_ret, DCC.TV.Cor = dcc.time.var.cor)
+```
+
+    ## Warning: `tbl_df()` was deprecated in dplyr 1.0.0.
+    ## i Please use `tibble::as_tibble()` instead.
+
+``` r
+# Now we can plot ;)
+
+# Equities
+
+DCC_eq_plot <- ggplot(dcc.time.var.cor %>% 
+                          
+                          filter(grepl("MSCI_ACWI_", Pairs), 
+                                 !grepl("_MSCI_ACWI", Pairs))) + 
+    
+    geom_line(aes(x = date, y = Rho, colour = Pairs)) + 
+    
+    theme_hc() + labs(subtitle = "Dynamic Conditional Correlations: MSCI_ACWI", x = "", y = "") +
+    
+    fmx_cols() + 
+    
+    theme_fmx(subtitle.size = ggpts(25), legend.size = ggpts(15))
+
+
+# US Bonds
+DCC_bond_plot <- ggplot(dcc.time.var.cor %>% 
+                            
+                            filter(grepl("US_10Yr_", Pairs), 
+                                   !grepl("_US_10Yr", Pairs))) + 
+    
+    geom_line(aes(x = date, y = Rho, colour = Pairs)) + theme_hc() + 
+    
+    labs(subtitle="Dynamic Conditional Correlations: US_10Yr", x = "", y = "") +
+    
+    fmx_cols() + 
+    
+    theme_fmx(subtitle.size = ggpts(25), legend.size = ggpts(15))
+
+
+# Real Estate
+
+DCC_RE_plot <- ggplot(dcc.time.var.cor %>% 
+                          
+                          filter(grepl("MSCI_RE_", Pairs), 
+                                 !grepl("_MSCI_RE", Pairs))) + 
+    
+    geom_line(aes(x = date, y = Rho, colour = Pairs)) + theme_hc() + 
+    
+    labs(subtitle = "Dynamic Conditional Correlations: MSCI_RE", x = "", y = "") +
+    
+    fmx_cols() + 
+    
+    theme_fmx(subtitle.size = ggpts(25), legend.size = ggpts(15))
+
+
+
+# Oil
+
+DCC_oil_plot <- ggplot(dcc.time.var.cor %>% 
+                           
+                           filter(grepl("Oil_Brent_", Pairs), 
+                                  !grepl("_Oil_Brent", Pairs))) +
+    
+    geom_line(aes(x = date, y = Rho, colour = Pairs)) + 
+    
+    theme_hc() + 
+    
+    labs(subtitle = "Dynamic Conditional Correlations: Oil_Brent", x = "", y = "") +
+    
+    fmx_cols() + 
+    
+    theme_fmx(subtitle.size = ggpts(25), legend.size = ggpts(15))
+```
+
+``` r
+plot_grid(DCC_eq_plot, DCC_bond_plot, DCC_RE_plot , DCC_oil_plot, labels = c('', '', '',''))
+```
+
+![](README_files/figure-markdown_github/unnamed-chunk-39-1.png)
+
+-   Go Garch
+
+``` r
+# Go-GARCH following the Tutorial
+
+# GARCH Specifications
+spec.go <- gogarchspec(multi_univ_garch_spec, 
+                       distribution.model = 'mvnorm', 
+                       ica = 'fastica') 
+
+# Speed:
+
+cl <- makePSOCKcluster(10)
+
+# Fit GARCH
+
+multf <- multifit(multi_univ_garch_spec, asset_classes_ret, cluster = cl)
+
+#GO-GARCH Specifications
+
+fit.gogarch <- gogarchfit(spec.go, 
+                      data = asset_classes_ret, 
+                      solver = 'hybrid', 
+                      cluster = cl, 
+                      gfun = 'tanh', 
+                      maxiter1 = 40000, 
+                      epsilon = 1e-08, 
+                      rseed = 100)
+
+# Go-Garch Fit
+
+print(fit.gogarch)
+```
+
+    ## 
+    ## *------------------------------*
+    ## *        GO-GARCH Fit          *
+    ## *------------------------------*
+    ## 
+    ## Mean Model       : CONSTANT
+    ## GARCH Model      : sGARCH
+    ## Distribution : mvnorm
+    ## ICA Method       : fastica
+    ## No. Factors      : 4
+    ## No. Periods      : 3086
+    ## Log-Likelihood   : 38671.96
+    ## ------------------------------------
+    ## 
+    ## U (rotation matrix) : 
+    ## 
+    ##        [,1]   [,2]    [,3]    [,4]
+    ## [1,]  0.859 -0.359 -0.2106 -0.2992
+    ## [2,]  0.398  0.277 -0.0869  0.8704
+    ## [3,] -0.187 -0.882  0.1952  0.3854
+    ## [4,]  0.264  0.127  0.9539 -0.0656
+    ## 
+    ## A (mixing matrix) : 
+    ## 
+    ##          [,1]    [,2]      [,3]      [,4]
+    ## [1,] -0.00140 0.00865  0.002277  0.000678
+    ## [2,] -0.02864 0.00726  0.006998  0.002690
+    ## [3,] -0.00139 0.00877 -0.003286 -0.000216
+    ## [4,] -0.00201 0.00728  0.000874  0.020820
+
+``` r
+# Wrangle Output
+
+gog.time.var.cor <- rcor(fit.gogarch)
+
+gog.time.var.cor <- aperm(gog.time.var.cor,c(3,2,1))
+
+dim(gog.time.var.cor) <- c(nrow(gog.time.var.cor), ncol(gog.time.var.cor)^2)
+
+# Rename Output
+
+gog.time.var.cor <- renamingdcc(ReturnSeries = asset_classes_ret, DCC.TV.Cor = gog.time.var.cor)
+
+
+# Plots
+
+# Equities
+
+GO_eq_plot <- ggplot(gog.time.var.cor %>% 
+                   
+                   filter(grepl("MSCI_ACWI_", Pairs), 
+                          !grepl("_MSCI_ACWI", Pairs))) + 
+    
+    geom_line(aes(x = date, y = Rho, colour = Pairs)) +
+    
+    theme_hc() + 
+    
+    labs(subtitle = "Go-Garch: MSCI_ACWI", x = "", y = "") +
+    
+    fmx_cols() + 
+    
+    theme_fmx(subtitle.size = ggpts(25), legend.size = ggpts(15))
+
+# Bonds
+
+GO_bond_plot <- ggplot(gog.time.var.cor %>% 
+                   
+                   filter(grepl("US_10Yr_", Pairs), !grepl("_US_10Yr", Pairs))) +
+    
+    geom_line(aes(x = date, y = Rho, colour = Pairs)) + 
+    
+    theme_hc() + 
+    
+    labs(subtitle="Go-Garch: US_10Yr", x = "", y = "") +
+    
+    fmx_cols() + 
+    
+    theme_fmx(subtitle.size = ggpts(25), legend.size = ggpts(15))
+
+# Real Estate
+
+GO_RE_plot <- ggplot(gog.time.var.cor %>%
+                   
+                   filter(grepl("MSCI_RE_", Pairs), !grepl("_MSCI_RE", Pairs))) +
+    
+    geom_line(aes(x = date, y = Rho, colour = Pairs)) + 
+    
+    theme_hc() +
+    
+    labs(subtitle = "Go-Garch: MSCI_RE", x = "", y = "") +
+    
+    fmx_cols() +
+    
+    theme_fmx(subtitle.size = ggpts(25), legend.size = ggpts(15))
+
+
+# Commodities
+
+GO_oil_plot <- ggplot(gog.time.var.cor %>%
+                   
+                   filter(grepl("Oil_Brent_", Pairs), !grepl("_Oil_Brent", Pairs))) + 
+    
+    geom_line(aes(x = date, y = Rho, colour = Pairs)) + 
+    
+    theme_hc() + 
+    
+    labs(subtitle = "Go-GARCH: Oil_Brent", x = "", y = "") +
+    
+    fmx_cols() + 
+    
+    theme_fmx(subtitle.size = ggpts(25), legend.size = ggpts(15))
+```
+
+``` r
+plot_grid(GO_eq_plot, GO_bond_plot, GO_RE_plot , GO_oil_plot, labels = c('', '', '',''))
+```
+
+![](README_files/figure-markdown_github/unnamed-chunk-42-1.png)
+
+``` r
+library(factoextra)
+library(FactoMineR)
+pacman::p_load("psych")
+
+eq_pca <- msci %>% 
+    
+    spread(Name, Price) %>% 
+    
+    select(date, MSCI_ACWI)
+
+bond_pca <- bonds %>% 
+    
+    spread(Name, Bond_10Yr) %>% 
+    
+    select(date, US_10Yr)
+
+Re_pca <- msci %>% 
+    
+    spread(Name, Price) %>% 
+    
+    select(date, MSCI_RE)
+    
+oil_pca <- comms %>%  
+    
+    spread(Name, Price) %>% 
+    
+    select(date, Oil_Brent)
+
+# Combine
+
+asset_class_pca <- left_join(eq_pca, bond_pca, by = c("date")) %>% 
+    
+    left_join(., Re_pca, by = c("date")) %>% 
+    
+    left_join(., oil_pca, by = c("date")) %>% 
+    
+    gather(Tickers, Price, -date) %>%
+    
+    group_by(Tickers) %>%
+    
+    filter(date > as.Date("2009-12-31")) %>% 
+    
+    arrange(date) %>%  
+    
+    group_by(Tickers) %>%  
+    
+    mutate(dlogret = log(Price) - log(lag(Price))) %>% 
+    
+    mutate(scaledret = (dlogret -  mean(dlogret, na.rm = T))) %>% 
+    
+    filter(date > dplyr::first(date)) %>% 
+    
+    ungroup()
+
+
+asset_classes_pca <- asset_class_pca %>%  
+    
+    select(date, Tickers, dlogret) %>% 
+    
+    spread(Tickers, dlogret) %>% 
+    
+    select(-date)
+
+AC_PCA_plot <- prcomp(asset_classes_pca, center = TRUE, scale. = TRUE)
+
+AC_PCA_plot$rotation
+```
+
+    ##                  PC1        PC2         PC3         PC4
+    ## MSCI_ACWI -0.6080549  0.2681471  0.01713371 -0.74704269
+    ## MSCI_RE   -0.5540251  0.5226063  0.09680532  0.64075547
+    ## Oil_Brent -0.3932987 -0.6563281  0.63617819  0.09913059
+    ## US_10Yr   -0.4106600 -0.4735115 -0.76525321  0.14674050
+
+``` r
+pairs.panels(asset_classes_pca)
+```
+
+![](README_files/figure-markdown_github/unnamed-chunk-43-1.png)
+
+``` r
+gviolion <- asset_classes_pca %>% 
+    
+    gather(Type, val) %>% 
+    
+    ggplot() + 
+    
+    geom_violin(aes(Type, val, fill = Type), alpha = 0.7) +
+    
+    fmxdat::theme_fmx() + 
+    
+    fmxdat::fmx_fills()
+
+fmxdat::finplot(gviolion, y.pct = T, y.pct_acc = 1, x.vert = T)
+```
+
+![](README_files/figure-markdown_github/unnamed-chunk-44-1.png)
