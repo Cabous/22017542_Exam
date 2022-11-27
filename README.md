@@ -583,8 +583,6 @@ compare_spread_plot <- bonds_2y10y_spread %>%
 fmxdat::finplot(compare_spread_plot, x.date.type = "%Y%m", x.vert = TRUE)
 ```
 
-    ## Warning: Removed 14 rows containing missing values (`geom_line()`).
-
 ![](README_files/figure-markdown_github/unnamed-chunk-13-1.png)
 
 The graph strongly supports the notion that the local yield spread is
@@ -1000,13 +998,7 @@ ALSI_capped <- rmsfuns::Safe_Return.portfolio(R = ALSI_rts, weights = ALSI_wts,
     xts_tbl() %>% 
     
     rename(ALSI = portfolio.returns)
-```
 
-    ## Warning in Return.portfolio.geometric(R = R, weights = weights, wealth.index =
-    ## wealth.index, : The weights for one or more periods do not sum up to 1: assuming
-    ## a return of 0 for the residual weights
-
-``` r
 # Construct Capped Portfolio and Determine Performance for SWIX
 
 reb_SWIX <- T40 %>% 
@@ -1055,13 +1047,8 @@ SWIX_capped <- rmsfuns::Safe_Return.portfolio(R = SWIX_rts, weights = SWIX_wts,
     xts_tbl() %>% 
     
 rename(SWIX = portfolio.returns)
-```
 
-    ## Warning in Return.portfolio.geometric(R = R, weights = weights, wealth.index =
-    ## wealth.index, : The weights for one or more periods do not sum up to 1: assuming
-    ## a return of 0 for the residual weights
 
-``` r
 # Combine and Plot Performance
 
 capped_indices <- left_join(ALSI_capped, SWIX_capped, by = "date") %>% 
@@ -1104,13 +1091,7 @@ ALSI_capped_6p <- rmsfuns::Safe_Return.portfolio(R = ALSI_rts_6p, weights = ALSI
     xts_tbl() %>% 
     
     rename(ALSI = portfolio.returns)
-```
 
-    ## Warning in Return.portfolio.geometric(R = R, weights = weights, wealth.index =
-    ## wealth.index, : The weights for one or more periods do not sum up to 1: assuming
-    ## a return of 0 for the residual weights
-
-``` r
 # Apply Proportional_Cap_Foo to SwIX to get capped return for cap of 10%
 
 Capped_df_10p <- reb_SWIX %>% 
@@ -1145,13 +1126,8 @@ SWIX_capped_10p <- rmsfuns::Safe_Return.portfolio(R = SWIX_rts_10p, weights = SW
     xts_tbl() %>% 
     
 rename(SWIX = portfolio.returns)
-```
 
-    ## Warning in Return.portfolio.geometric(R = R, weights = weights, wealth.index =
-    ## wealth.index, : The weights for one or more periods do not sum up to 1: assuming
-    ## a return of 0 for the residual weights
 
-``` r
 # Combine and Plot Performance
 
 capped_indices_6p <- left_join(ALSI_capped_6p, SWIX_capped_10p, by = "date") %>% 
@@ -1388,7 +1364,7 @@ is generally considered a measure of sentiment.
 
 ``` r
 ## To analyse whether the Rand is volatile lets look at Implied volatility
-# What cuurencies are in the data?
+# What curencies are in the data?
 
 cncyIV %>% group_by(Name) %>% pull(Name) %>% unique 
 ```
@@ -1581,7 +1557,7 @@ print(tab, type="html")
 ```
 
 <!-- html table generated in R 4.1.3 by xtable 1.8-4 package -->
-<!-- Mon Nov 28 01:06:59 2022 -->
+<!-- Mon Nov 28 01:19:10 2022 -->
 <table border="1">
 <tr>
 <th>
@@ -1777,7 +1753,7 @@ garch_fit_gjrGARCH
     ## 4    50    104.96  0.000005948
     ## 
     ## 
-    ## Elapsed time : 0.528686
+    ## Elapsed time : 0.502629
 
 ``` r
 pacman::p_load(xtable)
@@ -1789,7 +1765,7 @@ print(Table, type="html")
 ```
 
 <!-- html table generated in R 4.1.3 by xtable 1.8-4 package -->
-<!-- Mon Nov 28 01:07:00 2022 -->
+<!-- Mon Nov 28 01:19:11 2022 -->
 <table border="1">
 <tr>
 <th>
@@ -2645,7 +2621,7 @@ print(tab_pca, type="html")
 ```
 
 <!-- html table generated in R 4.1.3 by xtable 1.8-4 package -->
-<!-- Mon Nov 28 01:07:41 2022 -->
+<!-- Mon Nov 28 01:19:46 2022 -->
 <table border="1">
 <tr>
 <th>

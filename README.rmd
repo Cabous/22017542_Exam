@@ -451,7 +451,7 @@ From the graph it appears that there is an inverse relationship between the brea
 
 # Compare to International Spreads
 
-```{r}
+```{r, warning=FALSE}
 
 #bonds_10y %>% pull(Name) %>% unique()
 
@@ -876,7 +876,7 @@ To answer the JSE’s question on applying capping to the indexes I will be look
 
 * Construct Capped Portfolio's
 
-```{r}
+```{r, warning=FALSE}
 # Construct Capped Portfolio and Determine Performance for ALSI
 
 reb_ALSI <- T40 %>% 
@@ -987,7 +987,7 @@ capped_indices <- left_join(ALSI_capped, SWIX_capped, by = "date") %>%
 ```
 
 
-```{r}
+```{r, warning=FALSE}
 # Apply Proportional_Cap_Foo to ALSI to get capped return for cap of 6%
 
 Capped_df_6p <- reb_ALSI %>% 
@@ -1275,7 +1275,7 @@ I will start by looking at implied volatility. The market's estimate of how much
 
 ```{r}
 ## To analyse whether the Rand is volatile lets look at Implied volatility
-# What cuurencies are in the data?
+# What curencies are in the data?
 
 cncyIV %>% group_by(Name) %>% pull(Name) %>% unique 
 ```
