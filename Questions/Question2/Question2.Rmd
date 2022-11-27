@@ -408,7 +408,7 @@ compare_spread_plot <- bonds_2y10y_spread %>%
     
     arrange(date) %>% 
     
-    ggplot() +
+    ggplot() + 
     
     geom_line(aes(date, Rates, colour = Spreads), alpha = 0.8) +
     

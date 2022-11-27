@@ -3,9 +3,11 @@ output:
   md_document:
     variant: markdown_github
 ---
+
 # Financial Econometrics Practical
 
-This is my README for the Financial Econometrics Practical Exam 2022
+This README contains all my solutions for the Financial Econometrics Practical Exam 2022.
+All the functions I use throughout are located in the code folder.
 
 
 ```{r}
@@ -171,7 +173,7 @@ RollSD_gg <- RollSD_combine_funds %>%
     
     ggplot() + 
     
-    geom_line(aes(date, RollRets, color = Tickers), alpha = 0.7, size = 1.25) + 
+    geom_line(aes(date, RollRets, color = Tickers), alpha = 0.7, size = 0.75) + 
     
     labs(title = "Rolling 3 Year Annualized Returns for the different Funds",
          
@@ -179,7 +181,7 @@ RollSD_gg <- RollSD_combine_funds %>%
          
          caption = "Note:\nDistortions are not evident now") + 
     
-    theme_fmx(title.size = ggpts(30), 
+    theme_fmx(title.size = ggpts(45), 
               subtitle.size = ggpts(5), caption.size = ggpts(25), CustomCaption = T) + 
     fmx_cols()
 
@@ -235,7 +237,7 @@ dlog_fund_ret_plot <- dlog_fund_ret %>%
     
     ggplot() + 
     
-    geom_line(aes(date, RollSD, color = Tickers), alpha = 0.7, size = 1.25) + 
+    geom_line(aes(date, RollSD, color = Tickers), alpha = 0.7, size = 0.75) + 
     
     labs(title = "Rolling 3 Year Annualized SD for the different Funds", 
          
@@ -243,7 +245,7 @@ dlog_fund_ret_plot <- dlog_fund_ret %>%
     
     caption = "Note:\nDistortions are not evident now.") + 
     
-    theme_fmx(title.size = ggpts(30), 
+    theme_fmx(title.size = ggpts(45), 
               
     subtitle.size = ggpts(5), caption.size = ggpts(25), CustomCaption = T) + 
     
@@ -1254,7 +1256,7 @@ finplot(mean_cor_plot)
 
 
 
-# Question 5
+# Question 5: Volatility and GARCH estimates
 
 The study of volatility is particularly important in financial modelling. Thus, in this question I will look at the South African ZAR since it has been quite volatile over the past couple of years. More specifically, I will conduct a simple univariate-GARCH estimation to analyse the volatility of the Rand.
 
@@ -1569,7 +1571,7 @@ finplot(Vol_compare_plot)
 ```
 
 
-# Question 6
+# Question 6: MSCI Funds
 
 Diversification across various asset classes is a pivotal step for portfolio construction due to its risk-mitigating capabilities. As such, I will explore if the return profiles of different asset classes (Equities, Commodities,
 Real Estate and Bonds) have increased in their convergence. In other words, if diversification by holding different asset classes have reduced.
@@ -2113,7 +2115,8 @@ fmxdat::finplot(gviolion, y.pct = T, y.pct_acc = 1, x.vert = T)
 
 From these graphs it appears that the US 10 year bond and Oil show the highest degrees of dispersion.
 
-# Question 7
+
+# Question 7: Portfolio Construction
 
 For this question I will construct a Global Balanced Index Fund portfolio using a mix of traded global indexes.
 
@@ -2261,10 +2264,6 @@ Amat <- cbind(1, diag(NStox), -diag(NStox), Eq_mat, C_B_mat)
 # Calculate optimal rolling weights for each type of portfolio optimization
 
 EOM_datevec <- combine_assets_tut %>% 
-    
-    #filter(Tickers %in% comb_assets_3_years) %>% 
-    
-    #filter(date >= Start_Date[[1]]) %>% 
     
     select(date) %>% 
     
