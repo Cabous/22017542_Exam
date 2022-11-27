@@ -1603,18 +1603,104 @@ series
 ## Find best model
 
 ``` r
+pacman::p_load(xtable)
 # *Vol_Model_Sel & vol_func* are function I created (see code folder)
 
 best_model <- Vol_Model_Sel(zar_rtn)
 
-best_model
+tab <- xtable(best_model, digits=c(0, 5, 5, 4, 4))
+
+print(tab, type="html")
 ```
 
-    ##                 sGARCH  gjrGARCH    eGARCH    apARCH
-    ## Akaike       -6.397628 -6.400773 -6.399399 -6.396697
-    ## Bayes        -6.391791 -6.393769 -6.392394 -6.388525
-    ## Shibata      -6.397630 -6.400775 -6.399401 -6.396700
-    ## Hannan-Quinn -6.395596 -6.398334 -6.396960 -6.393852
+<!-- html table generated in R 4.1.3 by xtable 1.8-4 package -->
+<!-- Sun Nov 27 23:04:09 2022 -->
+<table border="1">
+<tr>
+<th>
+</th>
+<th>
+sGARCH
+</th>
+<th>
+gjrGARCH
+</th>
+<th>
+eGARCH
+</th>
+<th>
+apARCH
+</th>
+</tr>
+<tr>
+<td align="right">
+Akaike
+</td>
+<td align="right">
+-6.39763
+</td>
+<td align="right">
+-6.40077
+</td>
+<td align="right">
+-6.3994
+</td>
+<td align="right">
+-6.3967
+</td>
+</tr>
+<tr>
+<td align="right">
+Bayes
+</td>
+<td align="right">
+-6.39179
+</td>
+<td align="right">
+-6.39377
+</td>
+<td align="right">
+-6.3924
+</td>
+<td align="right">
+-6.3885
+</td>
+</tr>
+<tr>
+<td align="right">
+Shibata
+</td>
+<td align="right">
+-6.39763
+</td>
+<td align="right">
+-6.40078
+</td>
+<td align="right">
+-6.3994
+</td>
+<td align="right">
+-6.3967
+</td>
+</tr>
+<tr>
+<td align="right">
+Hannan-Quinn
+</td>
+<td align="right">
+-6.39560
+</td>
+<td align="right">
+-6.39833
+</td>
+<td align="right">
+-6.3970
+</td>
+<td align="right">
+-6.3939
+</td>
+</tr>
+</table>
 
 It appears that a *gjrGARCH* model will perform best, so I will use it
 to model the data.
@@ -1724,19 +1810,19 @@ garch_fit_gjrGARCH
     ## 4    50    104.96  0.000005948
     ## 
     ## 
-    ## Elapsed time : 0.544688
+    ## Elapsed time : 0.530551
 
 ``` r
 pacman::p_load(xtable)
 
-Table <- xtable(garch_fit_gjrGARCH@fit$matcoef, digits=c(0, 4, 4, 4, 4))
+Table <- xtable(garch_fit_gjrGARCH@fit$matcoef, digits=c(0, 5, 5, 4, 4))
 
 
 print(Table, type="html")
 ```
 
 <!-- html table generated in R 4.1.3 by xtable 1.8-4 package -->
-<!-- Sun Nov 27 22:08:48 2022 -->
+<!-- Sun Nov 27 23:04:10 2022 -->
 <table border="1">
 <tr>
 <th>
@@ -1759,10 +1845,10 @@ Pr(\>\|t\|)
 mu
 </td>
 <td align="right">
-0.0003
+0.00029
 </td>
 <td align="right">
-0.0001
+0.00012
 </td>
 <td align="right">
 2.3906
@@ -1776,10 +1862,10 @@ mu
 ar1
 </td>
 <td align="right">
--0.0004
+-0.00039
 </td>
 <td align="right">
-0.0138
+0.01383
 </td>
 <td align="right">
 -0.0282
@@ -1793,10 +1879,10 @@ ar1
 omega
 </td>
 <td align="right">
-0.0000
+0.00000
 </td>
 <td align="right">
-0.0000
+0.00000
 </td>
 <td align="right">
 2.7404
@@ -1810,10 +1896,10 @@ omega
 alpha1
 </td>
 <td align="right">
-0.0792
+0.07925
 </td>
 <td align="right">
-0.0054
+0.00543
 </td>
 <td align="right">
 14.5894
@@ -1827,10 +1913,10 @@ alpha1
 beta1
 </td>
 <td align="right">
-0.9290
+0.92896
 </td>
 <td align="right">
-0.0075
+0.00748
 </td>
 <td align="right">
 124.1921
@@ -1844,10 +1930,10 @@ beta1
 gamma1
 </td>
 <td align="right">
--0.0380
+-0.03796
 </td>
 <td align="right">
-0.0080
+0.00803
 </td>
 <td align="right">
 -4.7290
@@ -1987,6 +2073,19 @@ finplot(Vol_compare_plot)
 
 # Question 6
 
+Diversification across various asset classes is a pivotal step for
+portfolio construction due to its risk-mitigating capabilities. As such,
+I will explore if the return profiles of different asset classes
+(Equities, Commodities, Real Estate and Bonds) have increased in their
+convergence. In other words, if diversification by holding different
+asset classes have reduced.
+
+To measure correlation between assets classes, I will use dynamic
+conditional correlation (DCC) and Go-Garch to model for equities, bonds,
+real estate and commodity.model.
+
+## Import Data
+
 ``` r
 # Load Data
 pacman::p_load("MTS", "robustbase")
@@ -1997,6 +2096,127 @@ pacman::p_load("tidyverse", "devtools", "rugarch", "rmgarch",
 msci <- read_rds("data/msci.rds")
 bonds <- read_rds("data/bonds_10y.rds")
 comms <- read_rds("data/comms.rds")
+```
+
+-   Start by calculating returns for assets
+
+``` r
+# Calculate Returns for Assets
+
+# 1. First Calculate Returns for MSCI All Country World Index
+# For last decade
+
+Equities <- msci %>%
+    
+    group_by(Name) %>% 
+    
+    filter(Name %in% "MSCI_ACWI") %>% 
+    
+    mutate(dlogret = log(Price) - log(lag(Price))) %>%
+    
+    mutate(scaledret = (dlogret - mean(dlogret, na.rm = T))) %>% 
+    
+    filter(date > dplyr::first(date)) %>% 
+    
+    select(-Price) %>%
+    
+    filter(date > as.Date("2009-12-31")) %>% 
+    
+    rename(MSCI_ACWI = scaledret) %>%
+    
+    select(date, MSCI_ACWI)
+```
+
+    ## Adding missing grouping variables: `Name`
+
+``` r
+# 2. Calculate US 10 Year Bond Returns
+
+US_bond <- bonds %>%
+    
+    group_by(Name) %>%
+    
+    filter(Name %in% "US_10Yr") %>% 
+    
+    mutate(dlogret = Bond_10Yr/lag(Bond_10Yr) - 1) %>%
+    
+    mutate(scaledret = (dlogret - mean(dlogret, na.rm = T))) %>% 
+    
+    filter(date > dplyr::first(date)) %>% 
+    
+    select(-Bond_10Yr) %>%
+    
+    filter(date > as.Date("2009-12-31"))%>%
+    
+    rename(US_10Yr = scaledret) %>%
+    
+    select(date, US_10Yr)
+```
+
+    ## Adding missing grouping variables: `Name`
+
+``` r
+# 3. Calculate Global Real Estate Returns
+
+Real_Estate <- msci %>% 
+    
+    group_by(Name) %>%
+    
+    filter(Name %in% "MSCI_RE") %>% 
+    
+    mutate(dlogret = log(Price) - log(lag(Price))) %>% 
+    
+    mutate(scaledret = (dlogret - mean(dlogret, na.rm = T))) %>% 
+    
+    filter(date > dplyr::first(date)) %>% 
+    
+    select(-Price) %>%
+    
+    filter(date > as.Date("2009-12-31")) %>% 
+    
+    rename(MSCI_RE = scaledret) %>%
+    
+    select(date, MSCI_RE)
+```
+
+    ## Adding missing grouping variables: `Name`
+
+``` r
+# 4. Calculate Oil Returns
+
+Oil <- comms %>% 
+    
+    group_by(Name) %>%
+    
+    filter(Name %in% "Oil_Brent" ) %>% 
+    
+    mutate(dlogret = log(Price) - log(lag(Price))) %>% 
+    
+    mutate(scaledret = (dlogret - mean(dlogret, na.rm = T))) %>% 
+    
+    filter(date > dplyr::first(date)) %>%
+    
+    select(-Price) %>%
+    
+    filter(date > as.Date("2009-12-31")) %>%
+    
+    rename(Oil_Brent = scaledret) %>%
+    
+    select(date, Oil_Brent)
+```
+
+    ## Adding missing grouping variables: `Name`
+
+``` r
+# Combine and wrangle for DCC models
+
+asset_classes_ret <- left_join(Equities, US_bond, by = c("date")) %>% 
+    
+    left_join(., Real_Estate, by = c("date")) %>% 
+    
+    left_join(., Oil, by = c("date")) %>% 
+    
+    tbl_xts()
 ```
 
 ``` r
@@ -2015,7 +2235,9 @@ MarchTest(asset_classes_ret)
 
 The MARCH test indicates that all the MV portmanteau tests reject the
 null of no conditional heteroskedasticity, motivating our use of MVGARCH
-models. Let’s set up the model
+models.
+
+Let’s set up the model
 
 ``` r
 # GARCH specifications
@@ -2179,17 +2401,42 @@ DCC_oil_plot <- ggplot(dcc.time.var.cor %>%
 ```
 
 ``` r
-plot_grid(DCC_eq_plot, DCC_bond_plot, DCC_RE_plot , DCC_oil_plot, labels = c('', '', '',''))
+plot_grid(DCC_eq_plot, labels = c(''))
 ```
 
 ![](README_files/figure-markdown_github/unnamed-chunk-49-1.png)
 
+``` r
+plot_grid(DCC_bond_plot, labels = c(''))
+```
+
+![](README_files/figure-markdown_github/unnamed-chunk-50-1.png)
+
+``` r
+plot_grid(DCC_RE_plot, labels = c(''))
+```
+
+![](README_files/figure-markdown_github/unnamed-chunk-51-1.png)
+
+``` r
+plot_grid(DCC_oil_plot, labels = c(''))
+```
+
+![](README_files/figure-markdown_github/unnamed-chunk-52-1.png)
+
+## Go Garch
+
+Although efficient, the DCC model estimations makes some strong
+assumptionss, e.g., it assumes a constant structure to the correlation
+dynamics.Therefore, I will also use The GoGARCH model which is highly
+efficient uses less parameter intensive estimation techniques to
+decompose the var-covar matrix into orthogonal sources of volatility,
+
 -   Go Garch
 
 ``` r
-# Go-GARCH following the Tutorial
-
 # GARCH Specifications
+
 spec.go <- gogarchspec(multi_univ_garch_spec, 
                        distribution.model = 'mvnorm', 
                        ica = 'fastica') 
@@ -2332,10 +2579,28 @@ GO_oil_plot <- ggplot(gog.time.var.cor %>%
 ```
 
 ``` r
-plot_grid(GO_eq_plot, GO_bond_plot, GO_RE_plot , GO_oil_plot, labels = c('', '', '',''))
+plot_grid(GO_eq_plot, labels = c(''))
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-52-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-55-1.png)
+
+``` r
+plot_grid(GO_bond_plot, labels = c(''))
+```
+
+![](README_files/figure-markdown_github/unnamed-chunk-56-1.png)
+
+``` r
+plot_grid(GO_RE_plot, labels = c(''))
+```
+
+![](README_files/figure-markdown_github/unnamed-chunk-57-1.png)
+
+``` r
+plot_grid(GO_oil_plot, labels = c(''))
+```
+
+![](README_files/figure-markdown_github/unnamed-chunk-58-1.png)
 
 ``` r
 library(factoextra)
@@ -2416,7 +2681,7 @@ AC_PCA_plot$rotation
 pairs.panels(asset_classes_pca)
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-53-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-59-1.png)
 
 ``` r
 gviolion <- asset_classes_pca %>% 
@@ -2434,11 +2699,32 @@ gviolion <- asset_classes_pca %>%
 fmxdat::finplot(gviolion, y.pct = T, y.pct_acc = 1, x.vert = T)
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-54-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-60-1.png)
+
+From these graphs it appears that the US 10 year bond and Oil show the
+highest degrees of dispersion.
 
 # Question 7
 
-## \# Load in Data
+For this question I will construct a Global Balanced Index Fund
+portfolio using a mix of traded global indexes.
+
+To achieve a balanced index fund I will take the following
+considerations:
+
+-   A look-back of less than 3 years
+
+-   Disregard any assets with less than 3 years’ returns data
+
+-   Apply Quarterly Rebalancing
+
+-   Limit exposure to Bonds and credit instruments at 25%
+
+-   Limit exposure to Equities at 60%
+
+-   Limit single asset exposure at 40%
+
+## Import Data
 
 ``` r
 MAA <- read_rds("data/MAA.rds")
@@ -2457,7 +2743,7 @@ pacman::p_load("tidyr", "tbl2xts","devtools","lubridate", "readr", "PerformanceA
 quarter_dates <- dateconverter(as.Date("2018-01-01"), as.Date("2021-10-29"), 
     "weekdayEOQ") 
 
-# Cal returns for MAA
+# Calculate returns for MAA
 
 MAA <- MAA %>% 
     
@@ -2479,7 +2765,7 @@ MAA <- MAA %>%
     
     mutate(YearMonth = format(date, "%Y%B"))
 
-# Cal returns for MAA
+# Calculate returns for MAA
 
 msci_q7 <- msci %>% 
     
@@ -2506,29 +2792,6 @@ msci_q7 <- msci %>%
 combine_assets_tut <- rbind(MAA, msci_q7) %>% 
     
     arrange(date)
-
-# Consider only indexes with data from before 20080101, and use this as a common start date too...:
-# Can you argue why?
-
-#combine_assets_3yrtut <- combine_assets_tut %>% 
-    
-#    group_by(Tickers) %>% 
-    
-#    filter(date == first(date)) %>% 
-    
-#    ungroup() %>% 
-    
-#    filter(date < ymd(20180101)) %>% 
-    
-#    pull(Tickers) %>% 
-    
-#    unique
-
-#combine_assets_tut <- combine_assets_tut %>% 
-  
-#  filter(Tickers %in% combine_assets_3yrtut) %>% 
-  
-#  filter(date > ymd(20180101))
 ```
 
 ``` r
@@ -2602,10 +2865,10 @@ Opt_roll_wgt <- EOM_datevec %>%
     
     map_df(~Roll_optimizer(return_mat_q7, EOM_datevec = ., Amat = Amat, bvec = bvec, LookBack = 12))
 
-head(Opt_roll_wgt, 10)
+head(Opt_roll_wgt, 15)
 ```
 
-    ## # A tibble: 10 x 7
+    ## # A tibble: 15 x 7
     ##    stocks                          mv minvol maxdecor sharpe date       Look_B~1
     ##    <chr>                        <dbl>  <dbl>    <dbl>  <dbl> <date>        <dbl>
     ##  1 Asia_dollar_Idx             0.0100 0.375    0.375  0.0769 2018-06-29       12
@@ -2618,4 +2881,9 @@ head(Opt_roll_wgt, 10)
     ##  8 Commod_Idx                  0.0100 0.01     0.01   0.0769 2018-06-29       12
     ##  9 Dollar_Idx                  0.0100 0.25     0.25   0.0769 2018-06-29       12
     ## 10 MSCI_ACWI                   0.400  0.0100   0.0100 0.0769 2018-06-29       12
+    ## 11 MSCI_Jap                    0.0100 0.01     0.01   0.0769 2018-06-29       12
+    ## 12 MSCI_RE                     0.100  0.0100   0.0100 0.0769 2018-06-29       12
+    ## 13 MSCI_USA                    0.400  0.01     0.01   0.0769 2018-06-29       12
+    ## 14 Asia_dollar_Idx             0.0100 0.375    0.375  0.0769 2018-09-28       12
+    ## 15 Bbg_EUCorpCred_Unhedged_USD 0.0100 0.0100   0.0100 0.0769 2018-09-28       12
     ## # ... with abbreviated variable name 1: Look_Back_Period

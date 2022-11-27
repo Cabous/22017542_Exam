@@ -1414,13 +1414,15 @@ The test rejects the nulls of no ARCH effects - hence I will need to control for
 
 ## Find best model
 
-```{r}
-
+```{r, results = 'asis'}
+pacman::p_load(xtable)
 # *Vol_Model_Sel & vol_func* are function I created (see code folder)
 
 best_model <- Vol_Model_Sel(zar_rtn)
 
-best_model
+tab <- xtable(best_model, digits=c(0, 5, 5, 4, 4))
+
+print(tab, type="html")
 ```
 
 It appears that a *gjrGARCH* model will perform best, so I will use it to model the data.
@@ -1439,7 +1441,7 @@ garch_fit_gjrGARCH
 
 pacman::p_load(xtable)
 
-Table <- xtable(garch_fit_gjrGARCH@fit$matcoef, digits=c(0, 4, 4, 4, 4))
+Table <- xtable(garch_fit_gjrGARCH@fit$matcoef, digits=c(0, 5, 5, 4, 4))
 
 
 print(Table, type="html")
@@ -1569,6 +1571,13 @@ finplot(Vol_compare_plot)
 
 # Question 6
 
+Diversification across various asset classes is a pivotal step for portfolio construction due to its risk-mitigating capabilities. As such, I will explore if the return profiles of different asset classes (Equities, Commodities,
+Real Estate and Bonds) have increased in their convergence. In other words, if diversification by holding different asset classes have reduced.
+
+To measure correlation between assets classes, I will use dynamic conditional correlation (DCC) and Go-Garch to model for equities, bonds, real estate and commodity.model.
+
+## Import Data
+
 ```{r}
 # Load Data
 pacman::p_load("MTS", "robustbase")
@@ -1582,7 +1591,10 @@ comms <- read_rds("data/comms.rds")
 ```
 
 
-```{r, include=FALSE}
+* Start by calculating returns for assets
+
+```{r}
+
 # Calculate Returns for Assets
 
 # 1. First Calculate Returns for MSCI All Country World Index
@@ -1694,7 +1706,9 @@ MarchTest(asset_classes_ret)
 ```
 
 
-The MARCH test indicates that all the MV portmanteau tests reject the null of no conditional heteroskedasticity, motivating our use of MVGARCH models. Let's set up the model
+The MARCH test indicates that all the MV portmanteau tests reject the null of no conditional heteroskedasticity, motivating our use of MVGARCH models.
+
+Let's set up the model
 
 
 ```{r}
@@ -1822,15 +1836,43 @@ DCC_oil_plot <- ggplot(dcc.time.var.cor %>%
 
 
 ```{r}
-plot_grid(DCC_eq_plot, DCC_bond_plot, DCC_RE_plot , DCC_oil_plot, labels = c('', '', '',''))
+
+plot_grid(DCC_eq_plot, labels = c(''))
+
 ```
+
+
+```{r}
+
+plot_grid(DCC_bond_plot, labels = c(''))
+
+```
+
+```{r}
+
+plot_grid(DCC_RE_plot, labels = c(''))
+
+```
+
+```{r}
+
+plot_grid(DCC_oil_plot, labels = c(''))
+
+```
+
+## Go Garch
+
+
+Although efficient, the DCC model estimations makes some strong assumptionss, e.g., it assumes a constant structure to the correlation dynamics.Therefore, I will also use The GoGARCH model which is highly efficient uses less
+parameter intensive estimation techniques to decompose the var-covar matrix into orthogonal sources of volatility, 
+
 
 * Go Garch
 
 ```{r}
-# Go-GARCH following the Tutorial
 
 # GARCH Specifications
+
 spec.go <- gogarchspec(multi_univ_garch_spec, 
                        distribution.model = 'mvnorm', 
                        ica = 'fastica') 
@@ -1948,9 +1990,27 @@ GO_oil_plot <- ggplot(gog.time.var.cor %>%
 
 
 ```{r}
-plot_grid(GO_eq_plot, GO_bond_plot, GO_RE_plot , GO_oil_plot, labels = c('', '', '',''))
+plot_grid(GO_eq_plot, labels = c(''))
 
 ```
+
+```{r}
+
+plot_grid(GO_bond_plot, labels = c(''))
+
+```
+
+
+```{r}
+plot_grid(GO_RE_plot, labels = c(''))
+
+```
+
+```{r}
+plot_grid(GO_oil_plot, labels = c(''))
+
+```
+
 
 ```{r}
 library(factoextra)
@@ -2041,9 +2101,28 @@ fmxdat::finplot(gviolion, y.pct = T, y.pct_acc = 1, x.vert = T)
 
 ```
 
+From these graphs it appears that the US 10 year bond and Oil show the highest degrees of dispersion.
 
 # Question 7
-## # Load in Data
+
+For this question I will construct a Global Balanced Index Fund portfolio using a mix of traded global indexes.
+
+To achieve a balanced index fund I will take the following considerations:
+
+* A look-back of less than 3 years
+
+* Disregard any assets with less than 3 years’ returns data
+
+* Apply Quarterly Rebalancing
+
+* Limit exposure to Bonds and credit instruments at 25%
+
+* Limit exposure to Equities at 60%
+
+* Limit single asset exposure at 40%
+
+
+## Import Data
 
 ```{r}
 
@@ -2066,7 +2145,7 @@ pacman::p_load("tidyr", "tbl2xts","devtools","lubridate", "readr", "PerformanceA
 quarter_dates <- dateconverter(as.Date("2018-01-01"), as.Date("2021-10-29"), 
     "weekdayEOQ") 
 
-# Cal returns for MAA
+# Calculate returns for MAA
 
 MAA <- MAA %>% 
     
@@ -2088,7 +2167,7 @@ MAA <- MAA %>%
     
     mutate(YearMonth = format(date, "%Y%B"))
 
-# Cal returns for MAA
+# Calculate returns for MAA
 
 msci_q7 <- msci %>% 
     
@@ -2116,28 +2195,6 @@ combine_assets_tut <- rbind(MAA, msci_q7) %>%
     
     arrange(date)
 
-# Consider only indexes with data from before 20080101, and use this as a common start date too...:
-# Can you argue why?
-
-#combine_assets_3yrtut <- combine_assets_tut %>% 
-    
-#    group_by(Tickers) %>% 
-    
-#    filter(date == first(date)) %>% 
-    
-#    ungroup() %>% 
-    
-#    filter(date < ymd(20180101)) %>% 
-    
-#    pull(Tickers) %>% 
-    
-#    unique
-
-#combine_assets_tut <- combine_assets_tut %>% 
-  
-#  filter(Tickers %in% combine_assets_3yrtut) %>% 
-  
-#  filter(date > ymd(20180101))
 
 ```
 
@@ -2219,6 +2276,6 @@ Opt_roll_wgt <- EOM_datevec %>%
     
     map_df(~Roll_optimizer(return_mat_q7, EOM_datevec = ., Amat = Amat, bvec = bvec, LookBack = 12))
 
-head(Opt_roll_wgt, 10)
+head(Opt_roll_wgt, 15)
 
 ```
