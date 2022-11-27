@@ -1330,7 +1330,7 @@ Next I will calculate the rolling average pairwise correlations between
 all the stocks. That will require calculating the rolling pairwise
 correlation between all the stock combinations in the index and then
 take the mean of all those. Thus, I will tackle the problem in
-bite-sized pieces.The graph below shows the 90-day Mean Rolling
+bite-sized pieces. The graph below shows the 90-day Mean Rolling
 Constituent Correlation. I sourced the code I used for the function
 *rolling_cor_func* , from the following link:
 
@@ -1389,6 +1389,14 @@ finplot(mean_cor_plot)
 
 # Question 5
 
+The study of volatility is particularly important in financial
+modelling. Thus, in this question I will look at the South African ZAR
+since it has been quite volatile over the past couple of years. More
+specifically, I will conduct a simple univariate-GARCH estimation to
+analyse the volatility of the Rand.
+
+## Import Data
+
 ``` r
 # Load Data
 
@@ -1403,7 +1411,13 @@ cncyIV <- read_rds("data/cncyIV.rds")
 bbdxy <- read_rds("data/bbdxy.rds")
 ```
 
-## Volatility
+## Implied Volatility
+
+I will start by looking at implied volatility. The market’s estimate of
+how much a currency pair will fluctuate over a certain period in the
+future is known as implied volatility. Option traders can use a currency
+volatility index to price options on currency pairs. Implied volatility
+is generally considered a measure of sentiment.
 
 ``` r
 ## To analyse whether the Rand is volatile lets look at Implied volatility
@@ -1456,7 +1470,12 @@ IV_plot
 ![](README_files/figure-markdown_github/unnamed-chunk-27-1.png)
 
 This suggests that the market foresees the highest future volatility for
-the Rand, for this sub-sample.
+the Rand \[for this sub-sample\].
+
+Now I’ll calculate the returns to analyse the Auto-Persistence in
+Returns
+
+-   Calculate Returns
 
 ``` r
 # Calculating Returns and Cleaning
@@ -1497,6 +1516,10 @@ MarchTest(xts_zar_rtn)
     ## Test statistic:  1012.159  p-value:  0 
     ## Robust Test(5%) :  210.8329  p-value:  0
 
+The MARCH test indicates that all the MV portmanteau tests reject the
+null of no conditional heteroskedasticity, motivating the use of a GARCH
+model
+
 ``` r
 xts_zar_rtn[is.na(xts_zar_rtn)] <- 0
 
@@ -1527,6 +1550,13 @@ ggplot(PlotRtn) +
 
 ![](README_files/figure-markdown_github/unnamed-chunk-29-1.png)
 
+From the graph above it is clear that there is persistence in certain
+periods of USDZAR returns. Moreover, we have first and second order
+persistence as well as clear evidence of long-term memory in the second
+order process.
+
+Let’s investigate further…
+
 ``` r
 forecast::Acf(xts_zar_rtn, main = "ACF: Equally Weighted Return")
 ```
@@ -1551,6 +1581,11 @@ forecast::Acf(abs(xts_zar_rtn), main = "ACF: Absolute Equally Weighted Return")
 
 ![](README_files/figure-markdown_github/unnamed-chunk-33-1.png)
 
+The above proves we have very strong conditional heteroskedasticity, as
+well as long memory.
+
+A formal test for ARCH effects: LBQ stats on squared returns:
+
 ``` r
 Box.test(coredata(xts_zar_rtn^2), type = "Ljung-Box", lag = 12)
 ```
@@ -1561,9 +1596,15 @@ Box.test(coredata(xts_zar_rtn^2), type = "Ljung-Box", lag = 12)
     ## data:  coredata(xts_zar_rtn^2)
     ## X-squared = 1078.3, df = 12, p-value < 0.00000000000000022
 
-# Find best model
+The test rejects the nulls of no ARCH effects - hence I will need to
+control for the remaining conditional heteroskedasticity in the returns
+series
+
+## Find best model
 
 ``` r
+# *Vol_Model_Sel & vol_func* are function I created (see code folder)
+
 best_model <- Vol_Model_Sel(zar_rtn)
 
 best_model
@@ -1575,42 +1616,265 @@ best_model
     ## Shibata      -6.397630 -6.400775 -6.399401 -6.396700
     ## Hannan-Quinn -6.395596 -6.398334 -6.396960 -6.393852
 
-# Fit Model
+It appears that a *gjrGARCH* model will perform best, so I will use it
+to model the data.
+
+## Fit Model
 
 ``` r
 garch_fit_gjrGARCH <- vol_func(zar_rtn, "gjrGARCH")
 
-garch_fit_sGARCH <- vol_func(zar_rtn, "sGARCH")
-
-signbias(garch_fit_sGARCH)
+garch_fit_gjrGARCH
 ```
 
-    ##                        t-value          prob sig
-    ## Sign Bias           0.04213364 0.96639363855    
-    ## Negative Sign Bias  3.40498413 0.00066625471 ***
-    ## Positive Sign Bias  0.92248723 0.35631360809    
-    ## Joint Effect       23.82492612 0.00002717301 ***
+    ## 
+    ## *---------------------------------*
+    ## *          GARCH Model Fit        *
+    ## *---------------------------------*
+    ## 
+    ## Conditional Variance Dynamics    
+    ## -----------------------------------
+    ## GARCH Model  : gjrGARCH(1,1)
+    ## Mean Model   : ARFIMA(1,0,0)
+    ## Distribution : norm 
+    ## 
+    ## Optimal Parameters
+    ## ------------------------------------
+    ##         Estimate  Std. Error    t value Pr(>|t|)
+    ## mu      0.000290    0.000121   2.390615 0.016820
+    ## ar1    -0.000390    0.013834  -0.028195 0.977507
+    ## omega   0.000001    0.000000   2.740432 0.006136
+    ## alpha1  0.079246    0.005432  14.589373 0.000000
+    ## beta1   0.928959    0.007480 124.192092 0.000000
+    ## gamma1 -0.037962    0.008027  -4.729034 0.000002
+    ## 
+    ## Robust Standard Errors:
+    ##         Estimate  Std. Error  t value Pr(>|t|)
+    ## mu      0.000290    0.000148  1.96288 0.049660
+    ## ar1    -0.000390    0.014494 -0.02691 0.978531
+    ## omega   0.000001    0.000002  0.54809 0.583629
+    ## alpha1  0.079246    0.042597  1.86037 0.062833
+    ## beta1   0.928959    0.043752 21.23217 0.000000
+    ## gamma1 -0.037962    0.013465 -2.81922 0.004814
+    ## 
+    ## LogLikelihood : 18229 
+    ## 
+    ## Information Criteria
+    ## ------------------------------------
+    ##                     
+    ## Akaike       -6.4008
+    ## Bayes        -6.3938
+    ## Shibata      -6.4008
+    ## Hannan-Quinn -6.3983
+    ## 
+    ## Weighted Ljung-Box Test on Standardized Residuals
+    ## ------------------------------------
+    ##                         statistic p-value
+    ## Lag[1]                    0.08601  0.7693
+    ## Lag[2*(p+q)+(p+q)-1][2]   0.08836  1.0000
+    ## Lag[4*(p+q)+(p+q)-1][5]   0.66589  0.9841
+    ## d.o.f=1
+    ## H0 : No serial correlation
+    ## 
+    ## Weighted Ljung-Box Test on Standardized Squared Residuals
+    ## ------------------------------------
+    ##                         statistic p-value
+    ## Lag[1]                     0.4047  0.5247
+    ## Lag[2*(p+q)+(p+q)-1][5]    3.5819  0.3110
+    ## Lag[4*(p+q)+(p+q)-1][9]    4.6588  0.4812
+    ## d.o.f=2
+    ## 
+    ## Weighted ARCH LM Tests
+    ## ------------------------------------
+    ##             Statistic Shape Scale P-Value
+    ## ARCH Lag[3] 0.0007808 0.500 2.000  0.9777
+    ## ARCH Lag[5] 0.0834832 1.440 1.667  0.9898
+    ## ARCH Lag[7] 0.9556826 2.315 1.543  0.9207
+    ## 
+    ## Nyblom stability test
+    ## ------------------------------------
+    ## Joint Statistic:  470.2135
+    ## Individual Statistics:               
+    ## mu      0.18242
+    ## ar1     0.03082
+    ## omega  67.12581
+    ## alpha1  0.14913
+    ## beta1   0.08644
+    ## gamma1  0.25460
+    ## 
+    ## Asymptotic Critical Values (10% 5% 1%)
+    ## Joint Statistic:          1.49 1.68 2.12
+    ## Individual Statistic:     0.35 0.47 0.75
+    ## 
+    ## Sign Bias Test
+    ## ------------------------------------
+    ##                    t-value      prob sig
+    ## Sign Bias           0.2317 0.8167798    
+    ## Negative Sign Bias  2.9915 0.0027879 ***
+    ## Positive Sign Bias  0.3365 0.7365153    
+    ## Joint Effect       18.1832 0.0004032 ***
+    ## 
+    ## 
+    ## Adjusted Pearson Goodness-of-Fit Test:
+    ## ------------------------------------
+    ##   group statistic p-value(g-1)
+    ## 1    20     63.67  0.000001001
+    ## 2    30     82.47  0.000000501
+    ## 3    40     90.43  0.000005773
+    ## 4    50    104.96  0.000005948
+    ## 
+    ## 
+    ## Elapsed time : 0.544688
 
 ``` r
 pacman::p_load(xtable)
-Table <- xtable(garch_fit_sGARCH@fit$matcoef)
 
-print(Table, type = "latex", comment = FALSE)
+Table <- xtable(garch_fit_gjrGARCH@fit$matcoef, digits=c(0, 4, 4, 4, 4))
+
+
+print(Table, type="html")
+```
+
+<!-- html table generated in R 4.1.3 by xtable 1.8-4 package -->
+<!-- Sun Nov 27 22:08:48 2022 -->
+<table border="1">
+<tr>
+<th>
+</th>
+<th>
+Estimate
+</th>
+<th>
+Std. Error
+</th>
+<th>
+t value
+</th>
+<th>
+Pr(\>\|t\|)
+</th>
+</tr>
+<tr>
+<td align="right">
+mu
+</td>
+<td align="right">
+0.0003
+</td>
+<td align="right">
+0.0001
+</td>
+<td align="right">
+2.3906
+</td>
+<td align="right">
+0.0168
+</td>
+</tr>
+<tr>
+<td align="right">
+ar1
+</td>
+<td align="right">
+-0.0004
+</td>
+<td align="right">
+0.0138
+</td>
+<td align="right">
+-0.0282
+</td>
+<td align="right">
+0.9775
+</td>
+</tr>
+<tr>
+<td align="right">
+omega
+</td>
+<td align="right">
+0.0000
+</td>
+<td align="right">
+0.0000
+</td>
+<td align="right">
+2.7404
+</td>
+<td align="right">
+0.0061
+</td>
+</tr>
+<tr>
+<td align="right">
+alpha1
+</td>
+<td align="right">
+0.0792
+</td>
+<td align="right">
+0.0054
+</td>
+<td align="right">
+14.5894
+</td>
+<td align="right">
+0.0000
+</td>
+</tr>
+<tr>
+<td align="right">
+beta1
+</td>
+<td align="right">
+0.9290
+</td>
+<td align="right">
+0.0075
+</td>
+<td align="right">
+124.1921
+</td>
+<td align="right">
+0.0000
+</td>
+</tr>
+<tr>
+<td align="right">
+gamma1
+</td>
+<td align="right">
+-0.0380
+</td>
+<td align="right">
+0.0080
+</td>
+<td align="right">
+-4.7290
+</td>
+<td align="right">
+0.0000
+</td>
+</tr>
+</table>
+
+``` r
+#print(Table, type = "latex", comment = FALSE)
 ```
 
 ``` r
 #Conditional variance Plot
 
-persistence(garch_fit_sGARCH)
+persistence(garch_fit_gjrGARCH)
 ```
 
-    ## [1] 0.9895234
+    ## [1] 0.9892241
 
 ``` r
 # Persistence is alpha + beta, and it is typically very high and close to 1
 
 # To view the conditional variance plot, use:
-sigma <- sigma(garch_fit_sGARCH) %>% 
+sigma <- sigma(garch_fit_gjrGARCH) %>% 
     
     xts_tbl() 
 
@@ -1651,7 +1915,7 @@ fmxdat::finplot(Con_var_plot, y.pct = T, y.pct_acc = 1)
 ![](README_files/figure-markdown_github/unnamed-chunk-39-1.png)
 
 ``` r
-news_plot <- newsimpact(z = NULL, garch_fit_sGARCH)
+news_plot <- newsimpact(z = NULL, garch_fit_gjrGARCH)
 
 plot(news_plot$zx, news_plot$zy, ylab = news_plot$yexpr, xlab = news_plot$xexpr, type = "l", 
     main = "News Impact Curve")
@@ -1660,13 +1924,13 @@ plot(news_plot$zx, news_plot$zy, ylab = news_plot$yexpr, xlab = news_plot$xexpr,
 ![](README_files/figure-markdown_github/unnamed-chunk-40-1.png)
 
 ``` r
-plot(garch_fit_sGARCH, which = "all")
+plot(garch_fit_gjrGARCH, which = 1)
 ```
 
-    ## 
-    ## please wait...calculating quantiles...
-
 ![](README_files/figure-markdown_github/unnamed-chunk-41-1.png)
+
+Lets investigate further by compare smoothed ZAR Volatility to mean
+Global volatility
 
 ``` r
 # Lets investigate further
