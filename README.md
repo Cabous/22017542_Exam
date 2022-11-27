@@ -466,18 +466,24 @@ Portf_Rets_L400 <- Portf_Rets_L400 %>% mutate(Index = "J400")
 # combine
 
 Portf_Rets_L <- rbind.data.frame(Portf_Rets_L200, Portf_Rets_L400)
+```
 
+``` r
 # Plot
 Portf_Rets_L %>% 
     
     arrange(date) %>% 
+    
+    #group_by(Index) %>% 
     
 # Set NA Rets to zero to make cumprod work:
 #mutate(Rets = coalesce(ret, 0)) %>% 
     
     mutate(CP = cumprod(1 + portfolio.returns)) %>% 
     
-    ungroup() %>% 
+    mutate(CP = CP / first(CP)) %>% 
+    
+    #ungroup() %>% 
     
    # arrange(date) %>% 
     
@@ -492,13 +498,11 @@ Portf_Rets_L %>%
     fmxdat::theme_fmx(title.size = ggpts(30), subtitle.size = ggpts(25), legend.size = ggpts(20))
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-8-1.png)
-
-``` r
-###############################################################
+![](README_files/figure-markdown_github/unnamed-chunk-9-1.png)
 
 # Mid-Caps
 
+``` r
 W_xts_M200 <- T40 %>% 
     
     arrange(date) %>% 
@@ -665,7 +669,7 @@ Portf_Rets_M %>%
     fmxdat::theme_fmx(title.size = ggpts(30), subtitle.size = ggpts(25), legend.size = ggpts(20))
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-8-2.png)
+![](README_files/figure-markdown_github/unnamed-chunk-10-1.png)
 
 ``` r
 # Construct Capped Portfolio and Determine Performance for ALSI
@@ -886,7 +890,7 @@ fmxdat::theme_fmx(subtitle.size = ggpts(20))
 plot_grid(finplot(q2_p3), finplot(q2_p4), labels = list(title = "Comparing Capped and Uncapped returns of ALSI and SWIX"), label_size = ggpts(30), align = "h")
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-9-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-11-1.png)
 
 # Question 4
 
@@ -895,75 +899,6 @@ plot_grid(finplot(q2_p3), finplot(q2_p4), labels = list(title = "Comparing Cappe
 ``` r
 T40 <- read_rds("data/T40.rds")
 ```
-
-``` r
-T40_Q4 <- T40 %>% 
-    
-    na.locf(.,na.rm=T, 5) %>%
-    
-    select(date, Tickers, Return, J200) %>%
-    
-    mutate(Return = Return*J200) %>%
-    
-    select(date, Tickers, Return) %>% 
-    
-    group_by(Tickers) %>%
-    
-    mutate(Tickers = gsub(" SJ Equity", "", Tickers)) %>% 
-    
-    ungroup()
-```
-
--   Calculate Rolling Correlation
-
-``` r
-# Calculate rolling constituent correlation
-
-df_Q4 <- T40_Q4
-
-#df_Q4 %>% head(5) %>% pretty_table()
-
-# rolling correlation calculation
-
-pairwise_corrs <- rolling_cor_func(df_Q4, 90) %>% 
-    
-    ungroup() %>%
-    
-    filter(date > as.Date("2012/03/28"))
-
-# Determine Mean 
-
-Mean_pair_cor <- pairwise_corrs %>% 
-    
-    group_by(Tickers) %>% 
-    
-    summarise(Mean_Cor = mean(rollingcor)) 
-
-
-# Plot Mean over time
-mean_pw_cors <- pairwise_corrs %>%
-    
-  group_by(date) %>%
-    
-  summarise(mean_pw_corr = mean(rollingcor, na.rm = TRUE))
-
-mean_cor_plot <- mean_pw_cors %>% 
-    
-    ggplot() + 
-    
-    geom_line(aes(date, mean_pw_corr), alpha = 0.8, color ="steelblue") +
-    
-    fmx_cols() + 
-    
-    theme_fmx(title = ggpts(25)) + 
-    
-    labs(y = "Rolling Mean Constituent Correlation", 
-         x = "", title = "90-day Mean Rolling Constituent Correlation")
-
-finplot(mean_cor_plot)
-```
-
-![](README_files/figure-markdown_github/unnamed-chunk-12-1.png)
 
 # Calculate Returns
 
@@ -1023,19 +958,70 @@ fviz_screeplot(pca, ncp = 10)
 fviz_pca_var(pca, col.var = "steelblue") + theme_minimal()
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-14-2.png)
+![](README_files/figure-markdown_github/unnamed-chunk-15-1.png)
 
 ``` r
 fviz_contrib(pca, choice = "var", axes = 1, top = 10)
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-14-3.png)
+![](README_files/figure-markdown_github/unnamed-chunk-15-2.png)
 
 ``` r
 fviz_contrib(pca, choice = "var", axes = 2, top = 10)
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-14-4.png)
+![](README_files/figure-markdown_github/unnamed-chunk-15-3.png)
+
+-   Calculate Rolling Correlation
+
+``` r
+# Calculate rolling constituent correlation
+
+df_Q4 <- T40_Q4
+
+#df_Q4 %>% head(5) %>% pretty_table()
+
+# rolling correlation calculation
+
+pairwise_corrs <- rolling_cor_func(df_Q4, 90) %>% 
+    
+    ungroup() %>%
+    
+    filter(date > as.Date("2012/03/28"))
+
+# Determine Mean 
+
+Mean_pair_cor <- pairwise_corrs %>% 
+    
+    group_by(Tickers) %>% 
+    
+    summarise(Mean_Cor = mean(rollingcor)) 
+
+
+# Plot Mean over time
+mean_pw_cors <- pairwise_corrs %>%
+    
+  group_by(date) %>%
+    
+  summarise(mean_pw_corr = mean(rollingcor, na.rm = TRUE))
+
+mean_cor_plot <- mean_pw_cors %>% 
+    
+    ggplot() + 
+    
+    geom_line(aes(date, mean_pw_corr), alpha = 0.8, color ="steelblue") +
+    
+    fmx_cols() + 
+    
+    theme_fmx(title = ggpts(25)) + 
+    
+    labs(y = "Rolling Mean Constituent Correlation", 
+         x = "", title = "90-day Mean Rolling Constituent Correlation")
+
+finplot(mean_cor_plot)
+```
+
+![](README_files/figure-markdown_github/unnamed-chunk-16-1.png)
 
 # Question 5
 
@@ -1103,7 +1089,7 @@ IV_plot <- cncyIV %>%
 IV_plot
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-17-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-19-1.png)
 
 This suggests that the market foresees the highest future volatility for
 the Rand, for this sub-sample.
@@ -1175,31 +1161,31 @@ ggplot(PlotRtn) +
     fmxdat::theme_fmx()
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-19-1.png)
-
-``` r
-forecast::Acf(xts_zar_rtn, main = "ACF: Equally Weighted Return")
-```
-
-![](README_files/figure-markdown_github/unnamed-chunk-20-1.png)
-
-``` r
-forecast::Acf(xts_zar_rtn, main = "ACF: Equally Weighted Return")
-```
-
 ![](README_files/figure-markdown_github/unnamed-chunk-21-1.png)
 
 ``` r
-forecast::Acf(xts_zar_rtn^2, main = "ACF: Squared Equally Weighted Return")
+forecast::Acf(xts_zar_rtn, main = "ACF: Equally Weighted Return")
 ```
 
 ![](README_files/figure-markdown_github/unnamed-chunk-22-1.png)
 
 ``` r
-forecast::Acf(abs(xts_zar_rtn), main = "ACF: Absolute Equally Weighted Return")
+forecast::Acf(xts_zar_rtn, main = "ACF: Equally Weighted Return")
 ```
 
 ![](README_files/figure-markdown_github/unnamed-chunk-23-1.png)
+
+``` r
+forecast::Acf(xts_zar_rtn^2, main = "ACF: Squared Equally Weighted Return")
+```
+
+![](README_files/figure-markdown_github/unnamed-chunk-24-1.png)
+
+``` r
+forecast::Acf(abs(xts_zar_rtn), main = "ACF: Absolute Equally Weighted Return")
+```
+
+![](README_files/figure-markdown_github/unnamed-chunk-25-1.png)
 
 ``` r
 Box.test(coredata(xts_zar_rtn^2), type = "Ljung-Box", lag = 12)
@@ -1302,7 +1288,7 @@ ggplot() +
 fmxdat::finplot(Con_var_plot, y.pct = T, y.pct_acc = 1)
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-29-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-31-1.png)
 
 ``` r
 news_plot <- newsimpact(z = NULL, garch_fit_sGARCH)
@@ -1311,7 +1297,7 @@ plot(news_plot$zx, news_plot$zy, ylab = news_plot$yexpr, xlab = news_plot$xexpr,
     main = "News Impact Curve")
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-30-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-32-1.png)
 
 ``` r
 plot(garch_fit_sGARCH, which = "all")
@@ -1320,7 +1306,7 @@ plot(garch_fit_sGARCH, which = "all")
     ## 
     ## please wait...calculating quantiles...
 
-![](README_files/figure-markdown_github/unnamed-chunk-31-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-33-1.png)
 
 ``` r
 # Lets investigate further
@@ -1373,7 +1359,7 @@ Vol_compare_plot <- sigma %>%
 finplot(Vol_compare_plot)
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-32-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-34-1.png)
 
 # Question 6
 
@@ -1572,7 +1558,7 @@ DCC_oil_plot <- ggplot(dcc.time.var.cor %>%
 plot_grid(DCC_eq_plot, DCC_bond_plot, DCC_RE_plot , DCC_oil_plot, labels = c('', '', '',''))
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-39-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-41-1.png)
 
 -   Go Garch
 
@@ -1725,7 +1711,7 @@ GO_oil_plot <- ggplot(gog.time.var.cor %>%
 plot_grid(GO_eq_plot, GO_bond_plot, GO_RE_plot , GO_oil_plot, labels = c('', '', '',''))
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-42-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-44-1.png)
 
 ``` r
 library(factoextra)
@@ -1806,7 +1792,7 @@ AC_PCA_plot$rotation
 pairs.panels(asset_classes_pca)
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-43-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-45-1.png)
 
 ``` r
 gviolion <- asset_classes_pca %>% 
@@ -1824,4 +1810,188 @@ gviolion <- asset_classes_pca %>%
 fmxdat::finplot(gviolion, y.pct = T, y.pct_acc = 1, x.vert = T)
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-44-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-46-1.png)
+
+# Question 7
+
+## \# Load in Data
+
+``` r
+MAA <- read_rds("data/MAA.rds")
+
+msci <- read_rds("data/msci.rds") %>%
+    
+    filter(Name %in% c("MSCI_ACWI", "MSCI_USA", "MSCI_RE", "MSCI_Jap"))
+```
+
+``` r
+library(rmsfuns)
+pacman::p_load("tidyr", "tbl2xts","devtools","lubridate", "readr", "PerformanceAnalytics", "ggplot2", "dplyr")
+
+# quarter
+
+quarter_dates <- dateconverter(as.Date("2018-01-01"), as.Date("2021-10-29"), 
+    "weekdayEOQ") 
+
+# Cal returns for MAA
+
+MAA <- MAA %>% 
+    
+    arrange(date) %>% 
+    
+    rename(Tickers = Name) %>% 
+    
+    filter(date %in% quarter_dates) %>% 
+    
+    group_by(Tickers) %>% 
+    
+    mutate(Return = Price / lag(Price)-1) %>% 
+    
+    ungroup() %>% 
+    
+    select(date, Tickers, Return) %>% 
+    
+    filter(!is.na(Return)) %>% 
+    
+    mutate(YearMonth = format(date, "%Y%B"))
+
+# Cal returns for MAA
+
+msci_q7 <- msci %>% 
+    
+    arrange(date) %>% 
+    
+    rename(Tickers = Name) %>%
+    
+    filter(date %in% quarter_dates) %>%
+    
+    group_by(Tickers) %>% 
+    
+    mutate(Return = Price / lag(Price)-1) %>% 
+    
+    ungroup() %>% 
+    
+    select(date, Tickers, Return) %>% 
+    
+    filter(!is.na(Return)) %>% 
+    
+    mutate(YearMonth = format(date, "%Y%B"))
+
+# Combine
+
+combine_assets_tut <- rbind(MAA, msci_q7) %>% 
+    
+    arrange(date)
+
+# Consider only indexes with data from before 20080101, and use this as a common start date too...:
+# Can you argue why?
+
+#combine_assets_3yrtut <- combine_assets_tut %>% 
+    
+#    group_by(Tickers) %>% 
+    
+#    filter(date == first(date)) %>% 
+    
+#    ungroup() %>% 
+    
+#    filter(date < ymd(20180101)) %>% 
+    
+#    pull(Tickers) %>% 
+    
+#    unique
+
+#combine_assets_tut <- combine_assets_tut %>% 
+  
+#  filter(Tickers %in% combine_assets_3yrtut) %>% 
+  
+#  filter(date > ymd(20180101))
+```
+
+``` r
+# Impute missing values for return series
+return_mat_q7 <- combine_assets_tut %>%
+    
+    select(date, Tickers, Return) %>% 
+    
+    spread(Tickers, Return)
+
+options(scipen = 999)
+
+return_mat_q7 <- impute_missing_returns(return_mat_q7,
+                           impute_returns_method = "Drawn_Distribution_Collective", Seed =
+                               as.numeric(format( Sys.time(), "%Y%d%H%M")))
+
+# Create returns matrix
+
+return_mat__q7_Nodate <- data.matrix(return_mat_q7[, -1])
+```
+
+``` r
+# Create constraints
+
+NStox <- ncol(return_mat__q7_Nodate)
+LB = 0.01
+UB = 0.4
+Eq = 0.6 # Equity exposure
+Bonds = 0.25 # Credit and Bonds exposure
+meq = 1
+
+# A Mat 
+Eq_mat <- rbind(matrix(0, nrow = 9, ncol = 4),
+                -diag(4))
+
+C_B_mat <- rbind(matrix(0, 3, 6), 
+                 -diag(6),
+                 matrix(0, 4, 6))
+
+bvec <- c(1, rep(LB, NStox), -rep(UB, NStox), -rep(Eq, 4), -rep(Bonds, 6))
+
+Amat <- cbind(1, diag(NStox), -diag(NStox), Eq_mat, C_B_mat)
+```
+
+``` r
+# Calculate optimal rolling weights for each type of portfolio optimization
+
+EOM_datevec <- combine_assets_tut %>% 
+    
+    #filter(Tickers %in% comb_assets_3_years) %>% 
+    
+    #filter(date >= Start_Date[[1]]) %>% 
+    
+    select(date) %>% 
+    
+    unique %>% 
+    
+    mutate(YM = format(date, "%Y%B")) %>% 
+    
+    group_by(YM) %>% 
+    
+    filter(date == dplyr::last(date)) %>% 
+    
+    ungroup() %>% 
+    
+    pull(date) %>% 
+    
+    unique
+
+Opt_roll_wgt <- EOM_datevec %>% 
+    
+    map_df(~Roll_optimizer(return_mat_q7, EOM_datevec = ., Amat = Amat, bvec = bvec, LookBack = 12))
+
+head(Opt_roll_wgt, 10)
+```
+
+    ## # A tibble: 10 x 7
+    ##    stocks                          mv minvol maxdecor sharpe date       Look_B~1
+    ##    <chr>                        <dbl>  <dbl>    <dbl>  <dbl> <date>        <dbl>
+    ##  1 Asia_dollar_Idx             0.0100 0.375    0.375  0.0769 2018-06-29       12
+    ##  2 Bbg_EUCorpCred_Unhedged_USD 0.0100 0.0100   0.0100 0.0769 2018-06-29       12
+    ##  3 Bbg_EuroBonds_UnhedgedEUR   0.0100 0.0100   0.0100 0.0769 2018-06-29       12
+    ##  4 Bbg_GlBonds_HedgedUSD       0.0100 0.0395   0.0395 0.0769 2018-06-29       12
+    ##  5 Bbg_GlCorpCred_Hedged_USD   0.0100 0.0100   0.0100 0.0769 2018-06-29       12
+    ##  6 Bbg_USBonds_UnhedgedUSD     0.0100 0.246    0.246  0.0769 2018-06-29       12
+    ##  7 Bbg_USCorpCred_Unhedged_USD 0.0100 0.0100   0.0100 0.0769 2018-06-29       12
+    ##  8 Commod_Idx                  0.0100 0.01     0.01   0.0769 2018-06-29       12
+    ##  9 Dollar_Idx                  0.0100 0.25     0.25   0.0769 2018-06-29       12
+    ## 10 MSCI_ACWI                   0.400  0.0100   0.0100 0.0769 2018-06-29       12
+    ## # ... with abbreviated variable name 1: Look_Back_Period

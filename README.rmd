@@ -440,18 +440,24 @@ Portf_Rets_L400 <- Portf_Rets_L400 %>% mutate(Index = "J400")
 # combine
 
 Portf_Rets_L <- rbind.data.frame(Portf_Rets_L200, Portf_Rets_L400)
+```
 
+```{r}
 # Plot
 Portf_Rets_L %>% 
     
     arrange(date) %>% 
+    
+    #group_by(Index) %>% 
     
 # Set NA Rets to zero to make cumprod work:
 #mutate(Rets = coalesce(ret, 0)) %>% 
     
     mutate(CP = cumprod(1 + portfolio.returns)) %>% 
     
-    ungroup() %>% 
+    mutate(CP = CP / first(CP)) %>% 
+    
+    #ungroup() %>% 
     
    # arrange(date) %>% 
     
@@ -464,11 +470,12 @@ Portf_Rets_L %>%
          y = "Cumulative Returns", x ="") +
     
     fmxdat::theme_fmx(title.size = ggpts(30), subtitle.size = ggpts(25), legend.size = ggpts(20))
+```
 
-###############################################################
+
 
 # Mid-Caps
-
+```{r}
 W_xts_M200 <- T40 %>% 
     
     arrange(date) %>% 
@@ -842,7 +849,10 @@ T40 <- read_rds("data/T40.rds")
 
 ```
 
+# Calculate Returns
+
 ```{r}
+
 T40_Q4 <- T40 %>% 
     
     na.locf(.,na.rm=T, 5) %>%
@@ -855,9 +865,48 @@ T40_Q4 <- T40 %>%
     
     group_by(Tickers) %>%
     
-    mutate(Tickers = gsub(" SJ Equity", "", Tickers)) %>% 
-    
-    ungroup()
+    mutate(Tickers = gsub(" SJ Equity", "", Tickers))
+
+# PCA using princomp
+
+# prcomp requires wide, numeric data:
+
+return_mat <- T40_Q4 %>% spread(Tickers,Return)
+
+colSums(is.na(T40_Q4))
+
+```
+
+```{r}
+
+options(scipen = 999) # Stop the scientific notation of
+
+return_mat <- impute_missing_returns(return_mat, impute_returns_method = "Drawn_Distribution_Collective", Seed = as.numeric(format( Sys.time(), "%Y%d%H%M")))
+
+return_mat_Nodate <- data.matrix(return_mat[, -1])
+
+# Simple Sample covariance and mean:
+
+Sigma <- RiskPortfolios::covEstimation(return_mat_Nodate)
+
+Mu <- RiskPortfolios::meanEstimation(return_mat_Nodate)
+
+#PCA calculations
+
+pca <- prcomp(return_mat_Nodate,center=TRUE, scale.=TRUE)
+
+
+# Plot
+
+fviz_screeplot(pca, ncp = 10)
+```
+
+```{r}
+fviz_pca_var(pca, col.var = "steelblue") + theme_minimal()
+
+fviz_contrib(pca, choice = "var", axes = 1, top = 10)
+
+fviz_contrib(pca, choice = "var", axes = 2, top = 10)
 
 ```
 
@@ -915,64 +964,7 @@ finplot(mean_cor_plot)
 ```
 
 
-# Calculate Returns
 
-```{r}
-
-T40_Q4 <- T40 %>% 
-    
-    na.locf(.,na.rm=T, 5) %>%
-    
-    select(date, Tickers, Return, J200) %>%
-    
-    mutate(Return = Return*J200) %>%
-    
-    select(date, Tickers, Return) %>% 
-    
-    group_by(Tickers) %>%
-    
-    mutate(Tickers = gsub(" SJ Equity", "", Tickers))
-
-# PCA using princomp
-
-# prcomp requires wide, numeric data:
-
-return_mat <- T40_Q4 %>% spread(Tickers,Return)
-
-colSums(is.na(T40_Q4))
-
-```
-
-```{r}
-
-options(scipen = 999) # Stop the scientific notation of
-
-return_mat <- impute_missing_returns(return_mat, impute_returns_method = "Drawn_Distribution_Collective", Seed = as.numeric(format( Sys.time(), "%Y%d%H%M")))
-
-return_mat_Nodate <- data.matrix(return_mat[, -1])
-
-# Simple Sample covariance and mean:
-
-Sigma <- RiskPortfolios::covEstimation(return_mat_Nodate)
-
-Mu <- RiskPortfolios::meanEstimation(return_mat_Nodate)
-
-#PCA calculations
-
-pca <- prcomp(return_mat_Nodate,center=TRUE, scale.=TRUE)
-
-
-# Plot
-
-fviz_screeplot(pca, ncp = 10)
-
-fviz_pca_var(pca, col.var = "steelblue") + theme_minimal()
-
-fviz_contrib(pca, choice = "var", axes = 1, top = 10)
-
-fviz_contrib(pca, choice = "var", axes = 2, top = 10)
-
-```
 
 
 # Question 5
@@ -1731,5 +1723,187 @@ gviolion <- asset_classes_pca %>%
     fmxdat::fmx_fills()
 
 fmxdat::finplot(gviolion, y.pct = T, y.pct_acc = 1, x.vert = T)
+
+```
+
+
+# Question 7
+## # Load in Data
+
+```{r}
+
+MAA <- read_rds("data/MAA.rds")
+
+msci <- read_rds("data/msci.rds") %>%
+    
+    filter(Name %in% c("MSCI_ACWI", "MSCI_USA", "MSCI_RE", "MSCI_Jap"))
+
+```
+
+
+```{r}
+
+library(rmsfuns)
+pacman::p_load("tidyr", "tbl2xts","devtools","lubridate", "readr", "PerformanceAnalytics", "ggplot2", "dplyr")
+
+# quarter
+
+quarter_dates <- dateconverter(as.Date("2018-01-01"), as.Date("2021-10-29"), 
+    "weekdayEOQ") 
+
+# Cal returns for MAA
+
+MAA <- MAA %>% 
+    
+    arrange(date) %>% 
+    
+    rename(Tickers = Name) %>% 
+    
+    filter(date %in% quarter_dates) %>% 
+    
+    group_by(Tickers) %>% 
+    
+    mutate(Return = Price / lag(Price)-1) %>% 
+    
+    ungroup() %>% 
+    
+    select(date, Tickers, Return) %>% 
+    
+    filter(!is.na(Return)) %>% 
+    
+    mutate(YearMonth = format(date, "%Y%B"))
+
+# Cal returns for MAA
+
+msci_q7 <- msci %>% 
+    
+    arrange(date) %>% 
+    
+    rename(Tickers = Name) %>%
+    
+    filter(date %in% quarter_dates) %>%
+    
+    group_by(Tickers) %>% 
+    
+    mutate(Return = Price / lag(Price)-1) %>% 
+    
+    ungroup() %>% 
+    
+    select(date, Tickers, Return) %>% 
+    
+    filter(!is.na(Return)) %>% 
+    
+    mutate(YearMonth = format(date, "%Y%B"))
+
+# Combine
+
+combine_assets_tut <- rbind(MAA, msci_q7) %>% 
+    
+    arrange(date)
+
+# Consider only indexes with data from before 20080101, and use this as a common start date too...:
+# Can you argue why?
+
+#combine_assets_3yrtut <- combine_assets_tut %>% 
+    
+#    group_by(Tickers) %>% 
+    
+#    filter(date == first(date)) %>% 
+    
+#    ungroup() %>% 
+    
+#    filter(date < ymd(20180101)) %>% 
+    
+#    pull(Tickers) %>% 
+    
+#    unique
+
+#combine_assets_tut <- combine_assets_tut %>% 
+  
+#  filter(Tickers %in% combine_assets_3yrtut) %>% 
+  
+#  filter(date > ymd(20180101))
+
+```
+
+
+```{r}
+
+# Impute missing values for return series
+return_mat_q7 <- combine_assets_tut %>%
+    
+    select(date, Tickers, Return) %>% 
+    
+    spread(Tickers, Return)
+
+options(scipen = 999)
+
+return_mat_q7 <- impute_missing_returns(return_mat_q7,
+                           impute_returns_method = "Drawn_Distribution_Collective", Seed =
+                               as.numeric(format( Sys.time(), "%Y%d%H%M")))
+
+# Create returns matrix
+
+return_mat__q7_Nodate <- data.matrix(return_mat_q7[, -1])
+
+
+
+```
+
+
+```{r}
+# Create constraints
+
+NStox <- ncol(return_mat__q7_Nodate)
+LB = 0.01
+UB = 0.4
+Eq = 0.6 # Equity exposure
+Bonds = 0.25 # Credit and Bonds exposure
+meq = 1
+
+# A Mat 
+Eq_mat <- rbind(matrix(0, nrow = 9, ncol = 4),
+                -diag(4))
+
+C_B_mat <- rbind(matrix(0, 3, 6), 
+                 -diag(6),
+                 matrix(0, 4, 6))
+
+bvec <- c(1, rep(LB, NStox), -rep(UB, NStox), -rep(Eq, 4), -rep(Bonds, 6))
+
+Amat <- cbind(1, diag(NStox), -diag(NStox), Eq_mat, C_B_mat)
+```
+
+```{r}
+
+# Calculate optimal rolling weights for each type of portfolio optimization
+
+EOM_datevec <- combine_assets_tut %>% 
+    
+    #filter(Tickers %in% comb_assets_3_years) %>% 
+    
+    #filter(date >= Start_Date[[1]]) %>% 
+    
+    select(date) %>% 
+    
+    unique %>% 
+    
+    mutate(YM = format(date, "%Y%B")) %>% 
+    
+    group_by(YM) %>% 
+    
+    filter(date == dplyr::last(date)) %>% 
+    
+    ungroup() %>% 
+    
+    pull(date) %>% 
+    
+    unique
+
+Opt_roll_wgt <- EOM_datevec %>% 
+    
+    map_df(~Roll_optimizer(return_mat_q7, EOM_datevec = ., Amat = Amat, bvec = bvec, LookBack = 12))
+
+head(Opt_roll_wgt, 10)
 
 ```
