@@ -46,6 +46,239 @@ pacman::p_load("tidyverse", "devtools", "rugarch", "rmgarch",
 list.files('C:/Users/Cabous/OneDrive/Desktop/22017542_Exam/code/', full.names = T, recursive = T) %>% .[grepl('.R', .)] %>% as.list() %>% walk(~source(.))
 ```
 
+``` r
+ASISA <- read_rds("data/ASISA.rds")
+
+BM <- read_rds("data/Capped_SWIX.rds")
+
+AI_Fund <- read_rds("data/AI_Max_Fund.rds")
+```
+
+``` r
+# Find avergae returns for each active fund
+
+ASISA_clean <- ASISA %>% 
+    
+    arrange(date) %>%
+    
+    rename(Tickers = Name) %>% 
+    
+    filter(!is.na(Returns)) %>% 
+    
+    group_by(date) %>% 
+    
+    #na.omit(Returns) %>% 
+    
+    mutate(Returns = mean(Returns)) %>% 
+    
+    ungroup() %>% 
+    
+    mutate(Tickers = "Active_Fund") %>% 
+    
+    group_by(date) %>% 
+    
+    unique()
+
+
+head(ASISA_clean, 10)
+```
+
+    ## # A tibble: 10 x 3
+    ## # Groups:   date [10]
+    ##    date       Tickers      Returns
+    ##    <date>     <chr>          <dbl>
+    ##  1 2002-11-30 Active_Fund  0.0385 
+    ##  2 2002-12-31 Active_Fund -0.0205 
+    ##  3 2003-01-31 Active_Fund -0.0269 
+    ##  4 2003-02-28 Active_Fund -0.0371 
+    ##  5 2003-03-31 Active_Fund -0.0675 
+    ##  6 2003-04-30 Active_Fund  0.00199
+    ##  7 2003-05-31 Active_Fund  0.107  
+    ##  8 2003-06-30 Active_Fund  0.00930
+    ##  9 2003-07-31 Active_Fund  0.0533 
+    ## 10 2003-08-31 Active_Fund  0.0370
+
+``` r
+# Bind all funds
+
+combine_funds <- ASISA_clean %>% 
+    
+    rbind(BM, AI_Fund)
+
+# Calculating Rolling Returns
+
+combine_funds_plot <- combine_funds %>% 
+    
+    arrange(date) %>% 
+    
+    group_by(Tickers) %>% 
+    
+# Set NA Rets to zero to make cumprod work:
+    
+    mutate(Returns = coalesce(Returns, 0)) %>% 
+    
+    mutate(CP = cumprod(1 + Returns)) %>% 
+    
+    ungroup() %>% 
+    
+    ggplot() + 
+    
+    geom_line(aes(date, CP, color = Tickers)) + 
+    
+labs(title = "Illustration of Cumulative Returns of various Indices with differing start dates",
+     
+    subtitle = "", caption = "Note:\nDistortions emerge as starting dates differ.") +
+    
+    theme_fmx(title.size = ggpts(30), subtitle.size = ggpts(5), 
+              
+        caption.size = ggpts(25), CustomCaption = T)
+
+# Level plot
+
+combine_funds_plot
+```
+
+![](README_files/figure-markdown_github/unnamed-chunk-4-1.png)
+
+``` r
+# Save
+
+ggsave(filename = glue::glue("C:/Users/Cabous/OneDrive/Desktop/22017542_Exam/Questions/Question1/Tex/plot_1.png"), 
+       
+       plot = combine_funds_plot, device = "png", width = 12, height = 6)
+```
+
+``` r
+# Log cumulative plot:
+
+combine_funds_plot_log <- combine_funds_plot + 
+    
+    coord_trans(y = "log10") +
+    
+    labs(title = paste0(combine_funds_plot$labels$title, 
+    "\nLog Scaled"), y = "Log Scaled Cumulative Returns")
+
+# Save
+
+ggsave(filename = glue::glue("C:/Users/Cabous/OneDrive/Desktop/22017542_Exam/Questions/Question1/Tex/plot_2.png"), 
+       
+       plot = combine_funds_plot_log, device = "png", width = 12, height = 6)
+```
+
+``` r
+# Rolling SD annualized :
+RollSD_combine_funds <- combine_funds %>% 
+    
+    group_by(Tickers) %>% 
+
+    mutate(RollRets = RcppRoll::roll_prod(1 + Returns, 36, fill = NA, align = "right")^(12/36) - 1) %>% 
+# Note this cool trick: it removes dates that have no
+# RollRets at all.
+    group_by(date) %>% 
+    
+    filter(any(!is.na(RollRets))) %>% 
+    
+    ungroup()
+
+
+RollSD_gg <- RollSD_combine_funds %>% 
+    
+    ggplot() + 
+    
+    geom_line(aes(date, RollRets, color = Tickers), alpha = 0.7, size = 1.25) + 
+    
+    labs(title = "Illustration of Rolling 3 Year 
+         Annualized Returns of various Indices with differing start dates",
+         
+         subtitle = "", x = "", y = "Rolling 3 year Returns (Ann.)", 
+         
+         caption = "Note:\nDistortions are not evident now.") + 
+    
+    theme_fmx(title.size = ggpts(30), 
+              subtitle.size = ggpts(5), caption.size = ggpts(25), CustomCaption = T) + 
+    fmx_cols()
+```
+
+    ## Warning: Using `size` aesthetic for lines was deprecated in ggplot2 3.4.0.
+    ## i Please use `linewidth` instead.
+
+``` r
+finplot(RollSD_gg, x.date.dist = "1 year", x.date.type = "%Y", x.vert = T, 
+    y.pct = T, y.pct_acc = 1)
+```
+
+    ## Warning: Removed 70 rows containing missing values (`geom_line()`).
+
+![](README_files/figure-markdown_github/unnamed-chunk-6-1.png)
+
+``` r
+ggsave(filename = glue::glue("C:/Users/Cabous/OneDrive/Desktop/22017542_Exam/Questions/Question1/Tex/plot_3.png"), 
+       
+       plot = RollSD_gg, device = "png", width = 12, height = 6)
+```
+
+    ## Warning: Removed 70 rows containing missing values (`geom_line()`).
+
+``` r
+# log returns
+
+library(PerformanceAnalytics)
+library(tbl2xts)
+
+dlog_fund_ret <- combine_funds %>% 
+    
+    mutate(YM = format(date, "%Y%B")) %>% 
+    
+    arrange(date) %>% 
+    
+    group_by(Tickers, YM) %>% 
+    
+    filter(date == last(date)) %>% 
+    
+    group_by(Tickers) %>% 
+    
+    mutate(dlogret = log(1 + Returns)) %>% 
+    
+    select(date, Tickers, dlogret) %>% 
+    
+# Rolling SD annualized calc now:
+    
+    mutate(RollSD = RcppRoll::roll_sd(1 + dlogret, 36, fill = NA, align = "right") * sqrt(12)) %>%
+    
+    filter(!is.na(RollSD))
+# plot
+
+dlog_fund_ret_plot <- dlog_fund_ret %>% 
+    
+    ggplot() + 
+    
+    geom_line(aes(date, RollSD, color = Tickers), alpha = 0.7, size = 1.25) + 
+    
+    labs(title = "Illustration of Rolling 3 Year 
+         Annualized SD of various Indices with differing start dates", 
+         
+    subtitle = "", x = "", y = "Rolling 3 year Returns (Ann.)", 
+    
+    caption = "Note:\nDistortions are not evident now.") + 
+    
+    theme_fmx(title.size = ggpts(30), 
+              
+    subtitle.size = ggpts(5), caption.size = ggpts(25), CustomCaption = T) + 
+    
+    fmx_cols()
+
+finplot(dlog_fund_ret_plot, x.date.dist = "1 year", x.date.type = "%Y", x.vert = T, 
+    y.pct = T, y.pct_acc = 1)
+```
+
+![](README_files/figure-markdown_github/unnamed-chunk-8-1.png)
+
+``` r
+ggsave(filename = glue::glue("C:/Users/Cabous/OneDrive/Desktop/22017542_Exam/Questions/Question1/Tex/plot_4.png"), 
+       
+       plot = dlog_fund_ret_plot, device = "png", width = 12, height = 6)
+```
+
 # Question 1: Yield Spreads
 
 ## Import Data
@@ -115,7 +348,7 @@ SA_Spread_plot <- SA_Spreads %>%
 fmxdat::finplot(SA_Spread_plot, x.date.type = "%Y%m", x.vert = TRUE)
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-4-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-11-1.png)
 
 I can confirm that bond yields have since 2020 been the highest in two
 decades.
@@ -227,7 +460,7 @@ Spread_Infl_plot <- ZA_BE_Inflation %>%
 fmxdat::finplot(Spread_Infl_plot, x.date.type = "%Y%m", x.vert = TRUE)
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-5-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-12-1.png)
 
 # Compare to International Spreads
 
@@ -324,7 +557,7 @@ compare_spread_plot <- bonds_2y10y_spread %>%
 fmxdat::finplot(compare_spread_plot, x.date.type = "%Y%m", x.vert = TRUE)
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-6-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-13-1.png)
 
 # Question 2: Portfolio Construction
 
@@ -498,7 +731,7 @@ Portf_Rets_L %>%
     fmxdat::theme_fmx(title.size = ggpts(30), subtitle.size = ggpts(25), legend.size = ggpts(20))
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-9-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-16-1.png)
 
 # Mid-Caps
 
@@ -669,7 +902,7 @@ Portf_Rets_M %>%
     fmxdat::theme_fmx(title.size = ggpts(30), subtitle.size = ggpts(25), legend.size = ggpts(20))
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-10-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-17-1.png)
 
 ``` r
 # Construct Capped Portfolio and Determine Performance for ALSI
@@ -890,7 +1123,7 @@ fmxdat::theme_fmx(subtitle.size = ggpts(20))
 plot_grid(finplot(q2_p3), finplot(q2_p4), labels = list(title = "Comparing Capped and Uncapped returns of ALSI and SWIX"), label_size = ggpts(30), align = "h")
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-11-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-18-1.png)
 
 # Question 4
 
@@ -952,25 +1185,25 @@ pca <- prcomp(return_mat_Nodate,center=TRUE, scale.=TRUE)
 fviz_screeplot(pca, ncp = 10)
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-14-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-21-1.png)
 
 ``` r
 fviz_pca_var(pca, col.var = "steelblue") + theme_minimal()
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-15-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-22-1.png)
 
 ``` r
 fviz_contrib(pca, choice = "var", axes = 1, top = 10)
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-15-2.png)
+![](README_files/figure-markdown_github/unnamed-chunk-22-2.png)
 
 ``` r
 fviz_contrib(pca, choice = "var", axes = 2, top = 10)
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-15-3.png)
+![](README_files/figure-markdown_github/unnamed-chunk-22-3.png)
 
 -   Calculate Rolling Correlation
 
@@ -1021,7 +1254,7 @@ mean_cor_plot <- mean_pw_cors %>%
 finplot(mean_cor_plot)
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-16-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-23-1.png)
 
 # Question 5
 
@@ -1089,7 +1322,7 @@ IV_plot <- cncyIV %>%
 IV_plot
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-19-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-26-1.png)
 
 This suggests that the market foresees the highest future volatility for
 the Rand, for this sub-sample.
@@ -1161,31 +1394,31 @@ ggplot(PlotRtn) +
     fmxdat::theme_fmx()
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-21-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-28-1.png)
 
 ``` r
 forecast::Acf(xts_zar_rtn, main = "ACF: Equally Weighted Return")
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-22-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-29-1.png)
 
 ``` r
 forecast::Acf(xts_zar_rtn, main = "ACF: Equally Weighted Return")
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-23-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-30-1.png)
 
 ``` r
 forecast::Acf(xts_zar_rtn^2, main = "ACF: Squared Equally Weighted Return")
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-24-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-31-1.png)
 
 ``` r
 forecast::Acf(abs(xts_zar_rtn), main = "ACF: Absolute Equally Weighted Return")
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-25-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-32-1.png)
 
 ``` r
 Box.test(coredata(xts_zar_rtn^2), type = "Ljung-Box", lag = 12)
@@ -1279,16 +1512,12 @@ ggplot() +
        caption = "Source: Fin metrics class | Calculations: Own") + 
   
     fmxdat::theme_fmx(CustomCaption = TRUE)
-```
 
-    ## Warning: Using `size` aesthetic for lines was deprecated in ggplot2 3.4.0.
-    ## i Please use `linewidth` instead.
 
-``` r
 fmxdat::finplot(Con_var_plot, y.pct = T, y.pct_acc = 1)
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-31-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-38-1.png)
 
 ``` r
 news_plot <- newsimpact(z = NULL, garch_fit_sGARCH)
@@ -1297,7 +1526,7 @@ plot(news_plot$zx, news_plot$zy, ylab = news_plot$yexpr, xlab = news_plot$xexpr,
     main = "News Impact Curve")
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-32-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-39-1.png)
 
 ``` r
 plot(garch_fit_sGARCH, which = "all")
@@ -1306,7 +1535,7 @@ plot(garch_fit_sGARCH, which = "all")
     ## 
     ## please wait...calculating quantiles...
 
-![](README_files/figure-markdown_github/unnamed-chunk-33-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-40-1.png)
 
 ``` r
 # Lets investigate further
@@ -1359,7 +1588,7 @@ Vol_compare_plot <- sigma %>%
 finplot(Vol_compare_plot)
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-34-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-41-1.png)
 
 # Question 6
 
@@ -1558,7 +1787,7 @@ DCC_oil_plot <- ggplot(dcc.time.var.cor %>%
 plot_grid(DCC_eq_plot, DCC_bond_plot, DCC_RE_plot , DCC_oil_plot, labels = c('', '', '',''))
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-41-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-48-1.png)
 
 -   Go Garch
 
@@ -1711,7 +1940,7 @@ GO_oil_plot <- ggplot(gog.time.var.cor %>%
 plot_grid(GO_eq_plot, GO_bond_plot, GO_RE_plot , GO_oil_plot, labels = c('', '', '',''))
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-44-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-51-1.png)
 
 ``` r
 library(factoextra)
@@ -1792,7 +2021,7 @@ AC_PCA_plot$rotation
 pairs.panels(asset_classes_pca)
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-45-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-52-1.png)
 
 ``` r
 gviolion <- asset_classes_pca %>% 
@@ -1810,7 +2039,7 @@ gviolion <- asset_classes_pca %>%
 fmxdat::finplot(gviolion, y.pct = T, y.pct_acc = 1, x.vert = T)
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-46-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-53-1.png)
 
 # Question 7
 
