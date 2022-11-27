@@ -2077,9 +2077,19 @@ asset_classes_pca <- asset_class_pca %>%
     select(-date)
 
 AC_PCA_plot <- prcomp(asset_classes_pca, center = TRUE, scale. = TRUE)
+```
 
-AC_PCA_plot$rotation
 
+```{r, results = 'asis'}
+
+pacman::p_load(xtable)
+
+tab_pca <- xtable(AC_PCA_plot$rotation, digits=c(0, 5, 5, 4, 4))
+
+print(tab_pca, type="html")
+```
+
+```{r}
 pairs.panels(asset_classes_pca)
 
 ```

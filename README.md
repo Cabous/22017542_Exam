@@ -1614,7 +1614,7 @@ print(tab, type="html")
 ```
 
 <!-- html table generated in R 4.1.3 by xtable 1.8-4 package -->
-<!-- Sun Nov 27 23:04:09 2022 -->
+<!-- Sun Nov 27 23:12:15 2022 -->
 <table border="1">
 <tr>
 <th>
@@ -1810,7 +1810,7 @@ garch_fit_gjrGARCH
     ## 4    50    104.96  0.000005948
     ## 
     ## 
-    ## Elapsed time : 0.530551
+    ## Elapsed time : 0.5296772
 
 ``` r
 pacman::p_load(xtable)
@@ -1822,7 +1822,7 @@ print(Table, type="html")
 ```
 
 <!-- html table generated in R 4.1.3 by xtable 1.8-4 package -->
-<!-- Sun Nov 27 23:04:10 2022 -->
+<!-- Sun Nov 27 23:12:16 2022 -->
 <table border="1">
 <tr>
 <th>
@@ -2667,21 +2667,110 @@ asset_classes_pca <- asset_class_pca %>%
     select(-date)
 
 AC_PCA_plot <- prcomp(asset_classes_pca, center = TRUE, scale. = TRUE)
-
-AC_PCA_plot$rotation
 ```
 
-    ##                  PC1        PC2         PC3         PC4
-    ## MSCI_ACWI -0.6080549  0.2681471  0.01713371 -0.74704269
-    ## MSCI_RE   -0.5540251  0.5226063  0.09680532  0.64075547
-    ## Oil_Brent -0.3932987 -0.6563281  0.63617819  0.09913059
-    ## US_10Yr   -0.4106600 -0.4735115 -0.76525321  0.14674050
+``` r
+pacman::p_load(xtable)
+
+tab_pca <- xtable(AC_PCA_plot$rotation, digits=c(0, 5, 5, 4, 4))
+
+print(tab_pca, type="html")
+```
+
+<!-- html table generated in R 4.1.3 by xtable 1.8-4 package -->
+<!-- Sun Nov 27 23:12:59 2022 -->
+<table border="1">
+<tr>
+<th>
+</th>
+<th>
+PC1
+</th>
+<th>
+PC2
+</th>
+<th>
+PC3
+</th>
+<th>
+PC4
+</th>
+</tr>
+<tr>
+<td align="right">
+MSCI_ACWI
+</td>
+<td align="right">
+-0.60805
+</td>
+<td align="right">
+0.26815
+</td>
+<td align="right">
+0.0171
+</td>
+<td align="right">
+-0.7470
+</td>
+</tr>
+<tr>
+<td align="right">
+MSCI_RE
+</td>
+<td align="right">
+-0.55403
+</td>
+<td align="right">
+0.52261
+</td>
+<td align="right">
+0.0968
+</td>
+<td align="right">
+0.6408
+</td>
+</tr>
+<tr>
+<td align="right">
+Oil_Brent
+</td>
+<td align="right">
+-0.39330
+</td>
+<td align="right">
+-0.65633
+</td>
+<td align="right">
+0.6362
+</td>
+<td align="right">
+0.0991
+</td>
+</tr>
+<tr>
+<td align="right">
+US_10Yr
+</td>
+<td align="right">
+-0.41066
+</td>
+<td align="right">
+-0.47351
+</td>
+<td align="right">
+-0.7653
+</td>
+<td align="right">
+0.1467
+</td>
+</tr>
+</table>
 
 ``` r
 pairs.panels(asset_classes_pca)
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-59-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-61-1.png)
 
 ``` r
 gviolion <- asset_classes_pca %>% 
@@ -2699,7 +2788,7 @@ gviolion <- asset_classes_pca %>%
 fmxdat::finplot(gviolion, y.pct = T, y.pct_acc = 1, x.vert = T)
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-60-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-62-1.png)
 
 From these graphs it appears that the US 10 year bond and Oil show the
 highest degrees of dispersion.
