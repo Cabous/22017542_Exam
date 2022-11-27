@@ -12,16 +12,7 @@ All the functions I use throughout are located in the code folder.
 
 ```{r}
 
-#rm(list = ls()) 
-#gc() 
-
-library(tidyverse)
-library(zoo)
-library(factoextra)
-
-pacman::p_load("MTS", "robustbase")
-
-pacman::p_load("tidyverse", "devtools", "rugarch", "rmgarch", 
+pacman::p_load("tidyverse", "devtools", "rugarch", "rmgarch", "zoo", "factoextra",
      "forecast", "tbl2xts", "lubridate", "PerformanceAnalytics", 
      "ggthemes", "dplyr", "cowplot", "fmxdat", "glue","MTS", "robustbase","tidyr") 
 

@@ -1,44 +1,11 @@
 # Financial Econometrics Practical
 
-This is my README for the Financial Econometrics Practical Exam 2022
+This README contains all my solutions for the Financial Econometrics
+Practical Exam 2022. All the functions I use throughout are located in
+the code folder.
 
 ``` r
-#rm(list = ls()) 
-#gc() 
-
-library(tidyverse)
-```
-
-    ## -- Attaching packages --------------------------------------- tidyverse 1.3.2 --
-    ## v ggplot2 3.4.0      v purrr   0.3.4 
-    ## v tibble  3.1.7      v dplyr   1.0.10
-    ## v tidyr   1.2.0      v stringr 1.4.0 
-    ## v readr   2.1.2      v forcats 0.5.1 
-    ## -- Conflicts ------------------------------------------ tidyverse_conflicts() --
-    ## x dplyr::filter() masks stats::filter()
-    ## x dplyr::lag()    masks stats::lag()
-
-``` r
-library(zoo)
-```
-
-    ## 
-    ## Attaching package: 'zoo'
-    ## 
-    ## The following objects are masked from 'package:base':
-    ## 
-    ##     as.Date, as.Date.numeric
-
-``` r
-library(factoextra)
-```
-
-    ## Welcome! Want to learn more? See two factoextra-related books at https://goo.gl/ve3WBa
-
-``` r
-pacman::p_load("MTS", "robustbase")
-
-pacman::p_load("tidyverse", "devtools", "rugarch", "rmgarch", 
+pacman::p_load("tidyverse", "devtools", "rugarch", "rmgarch", "zoo", "factoextra",
      "forecast", "tbl2xts", "lubridate", "PerformanceAnalytics", 
      "ggthemes", "dplyr", "cowplot", "fmxdat", "glue","MTS", "robustbase","tidyr") 
 
@@ -140,7 +107,7 @@ labs(title = "Cumulative Returns of Funds",
      
     subtitle = "", caption = "Note:\nStarting dates differ") +
     
-    theme_fmx(title.size = ggpts(40), subtitle.size = ggpts(5), 
+    theme_fmx(title.size = ggpts(50), subtitle.size = ggpts(5),
               
         caption.size = ggpts(25), CustomCaption = T)
 
@@ -209,7 +176,7 @@ RollSD_gg <- RollSD_combine_funds %>%
     
     ggplot() + 
     
-    geom_line(aes(date, RollRets, color = Tickers), alpha = 0.7, size = 1.25) + 
+    geom_line(aes(date, RollRets, color = Tickers), alpha = 0.7, size = 0.75) + 
     
     labs(title = "Rolling 3 Year Annualized Returns for the different Funds",
          
@@ -217,7 +184,7 @@ RollSD_gg <- RollSD_combine_funds %>%
          
          caption = "Note:\nDistortions are not evident now") + 
     
-    theme_fmx(title.size = ggpts(30), 
+    theme_fmx(title.size = ggpts(45), 
               subtitle.size = ggpts(5), caption.size = ggpts(25), CustomCaption = T) + 
     fmx_cols()
 ```
@@ -277,7 +244,7 @@ dlog_fund_ret_plot <- dlog_fund_ret %>%
     
     ggplot() + 
     
-    geom_line(aes(date, RollSD, color = Tickers), alpha = 0.7, size = 1.25) + 
+    geom_line(aes(date, RollSD, color = Tickers), alpha = 0.7, size = 0.75) + 
     
     labs(title = "Rolling 3 Year Annualized SD for the different Funds", 
          
@@ -285,7 +252,7 @@ dlog_fund_ret_plot <- dlog_fund_ret %>%
     
     caption = "Note:\nDistortions are not evident now.") + 
     
-    theme_fmx(title.size = ggpts(30), 
+    theme_fmx(title.size = ggpts(45), 
               
     subtitle.size = ggpts(5), caption.size = ggpts(25), CustomCaption = T) + 
     
@@ -1387,7 +1354,7 @@ finplot(mean_cor_plot)
 
 ![](README_files/figure-markdown_github/unnamed-chunk-24-1.png)
 
-# Question 5
+# Question 5: Volatility and GARCH estimates
 
 The study of volatility is particularly important in financial
 modelling. Thus, in this question I will look at the South African ZAR
@@ -1614,7 +1581,7 @@ print(tab, type="html")
 ```
 
 <!-- html table generated in R 4.1.3 by xtable 1.8-4 package -->
-<!-- Sun Nov 27 23:12:15 2022 -->
+<!-- Mon Nov 28 01:06:59 2022 -->
 <table border="1">
 <tr>
 <th>
@@ -1810,7 +1777,7 @@ garch_fit_gjrGARCH
     ## 4    50    104.96  0.000005948
     ## 
     ## 
-    ## Elapsed time : 0.5296772
+    ## Elapsed time : 0.528686
 
 ``` r
 pacman::p_load(xtable)
@@ -1822,7 +1789,7 @@ print(Table, type="html")
 ```
 
 <!-- html table generated in R 4.1.3 by xtable 1.8-4 package -->
-<!-- Sun Nov 27 23:12:16 2022 -->
+<!-- Mon Nov 28 01:07:00 2022 -->
 <table border="1">
 <tr>
 <th>
@@ -2071,7 +2038,7 @@ finplot(Vol_compare_plot)
 
 ![](README_files/figure-markdown_github/unnamed-chunk-42-1.png)
 
-# Question 6
+# Question 6: MSCI Funds
 
 Diversification across various asset classes is a pivotal step for
 portfolio construction due to its risk-mitigating capabilities. As such,
@@ -2430,7 +2397,7 @@ Although efficient, the DCC model estimations makes some strong
 assumptionss, e.g., it assumes a constant structure to the correlation
 dynamics.Therefore, I will also use The GoGARCH model which is highly
 efficient uses less parameter intensive estimation techniques to
-decompose the var-covar matrix into orthogonal sources of volatility,
+decompose the var-covar matrix into orthogonal sources of volatility
 
 -   Go Garch
 
@@ -2678,7 +2645,7 @@ print(tab_pca, type="html")
 ```
 
 <!-- html table generated in R 4.1.3 by xtable 1.8-4 package -->
-<!-- Sun Nov 27 23:12:59 2022 -->
+<!-- Mon Nov 28 01:07:41 2022 -->
 <table border="1">
 <tr>
 <th>
@@ -2793,7 +2760,7 @@ fmxdat::finplot(gviolion, y.pct = T, y.pct_acc = 1, x.vert = T)
 From these graphs it appears that the US 10 year bond and Oil show the
 highest degrees of dispersion.
 
-# Question 7
+# Question 7: Portfolio Construction
 
 For this question I will construct a Global Balanced Index Fund
 portfolio using a mix of traded global indexes.
@@ -2929,10 +2896,6 @@ Amat <- cbind(1, diag(NStox), -diag(NStox), Eq_mat, C_B_mat)
 # Calculate optimal rolling weights for each type of portfolio optimization
 
 EOM_datevec <- combine_assets_tut %>% 
-    
-    #filter(Tickers %in% comb_assets_3_years) %>% 
-    
-    #filter(date >= Start_Date[[1]]) %>% 
     
     select(date) %>% 
     
