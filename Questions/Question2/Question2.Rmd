@@ -3,35 +3,35 @@
 # Remove comments and add values where applicable.
 # The descriptions below should be self-explanatory
 
-title: "Question 2: Yield Spread"
+#title: "Question 2: Yield Spread"
 #subtitle: "This will appear as Right Header"
 
 documentclass: "elsarticle"
 
 # --------- Thesis title (Optional - set to FALSE by default).
 # You can move the details below around as you please.
-Thesis_FP: FALSE
-# Entry1: "An unbelievable study with a title spanning multiple lines."
-# Entry2: "\\textbf{Nico Katzke}" # textbf for bold
-# Entry3: "A thesis submitted toward the degree of Doctor of Philosophy"
-# Uni_Logo: Tex/Logo.png # Place a logo in the indicated location (from your root, e.g. defaults to ~/Tex/Logo.png) and uncomment this line. Leave uncommented for no image
+Thesis_FP: yes
+Entry1: Question 2 - Yield Spread
+Entry2: \textbf{Carel Olivier} # textbf for bold
+Entry3: 22017542
+Uni_Logo: Tex/yield curve.png # Place a logo in the indicated location (from your root, e.g. defaults to ~/Tex/Logo.png) and uncomment this line. Leave uncommented for no image
 # Logo_width: 0.3 # If using a logo - use this to set width (size) of image
-# Entry4: "Under the supervision of: \\vfill Prof. Joe Smith and Dr. Frank Smith"
-# Entry5: "Stellenbosch University"
+Entry4: 
+#Entry5: Stellenbosch University
 # Entry6: April 2020
 # Entry7:
 # Entry8:
 
 # --------- Front Page
 # Comment: ----- Follow this pattern for up to 5 authors
-AddTitle: TRUE # Use FALSE when submitting to peer reviewed platform. This will remove author names.
-Author1: "Nico Katzke^[__Contributions:__  \\newline _The authors would like to thank no institution for money donated to this project. Thank you sincerely._]"  # First Author - note the thanks message displayed as an italic footnote of first page.
-Ref1: "Prescient Securities, Cape Town, South Africa" # First Author's Affiliation
-Email1: "nfkatzke\\@gmail.com" # First Author's Email address
+#AddTitle: TRUE # Use FALSE when submitting to peer reviewed platform. This will remove author names.
+#Author1: "Carel Olivier"  # First Author - note the thanks message displayed as an italic footnote of first page.
+#Ref1: "22017542" # First Author's Affiliation
+#Email1: "nfkatzke\\@gmail.com" # First Author's Email address
 
 # Comment out below to remove both. JEL Codes only given if keywords also given.
-keywords: "Multivariate GARCH \\sep Kalman Filter \\sep Copula" # Use \\sep to separate
-JELCodes: "L250 \\sep L100"
+#keywords: "Multivariate GARCH \\sep Kalman Filter \\sep Copula" # Use \\sep to separate
+#JELCodes: "L250 \\sep L100"
 
 # ----- Manage headers and footers:
 #BottomLFooter: $Title$
@@ -93,8 +93,14 @@ knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, fig.width 
 
 ```
 
+# Short Introduction
 
-# Yield Spreads
+Economists claim that the current yield spreads in the local mid to longer dated
+bond yields have since 2020 been the highest in decades. As such, I will conduct a brief analysis to investigate this claim. 
+
+A yield spread is simply the difference between the rate of return on different debt instruments which  have varying maturities. I will start by importing the data and plotting the different yield spreds for SA.
+
+
 
 ```{r}
 
@@ -119,7 +125,6 @@ IV <- read_rds("data/IV.rds")
 ```
 
 
-# Compare spreads
 
 ```{r}
 
@@ -147,7 +152,7 @@ SA_Spreads <- SA_bonds %>%
 
 ```
 
-# Plot the spreads
+# Yield spreads
 
 ```{r}
 
@@ -172,7 +177,9 @@ fmxdat::finplot(SA_Spread_plot, x.date.type = "%Y%m", x.vert = TRUE)
 
 ```
 
+I can confirm that the current yield spreads in mid to longer dated bonds are the highest they have been in two decades. However, the yield spread between the 2 year and 3 month (short-term) local bonds have remained relatively stable.
 
+Next I will try to analyse the relationship between the SA 10 Year Break-even inflation estimate, SA inflation, and the local long yield spread.
 
 ```{r}
 
@@ -279,6 +286,7 @@ fmxdat::finplot(Spread_Infl_plot, x.date.type = "%Y%m", x.vert = TRUE)
 
 ```
 
+From the graph it appears that there is an inverse relationship between the break even inflation estimate and local longer dated bond yields. Finally, I will compare the the local spread to international spreads. I will specifically look at Germany, Thailand and the US.
 
 ```{r}
 # Spreads and Exchange Rate
@@ -335,15 +343,13 @@ fmxdat::finplot(Spreads_EX_plot, x.date.type = "%Y%m", x.vert = TRUE)
 There seems to be some co-movement
 
 ```{r}
-# Compare to International Spreads 
-
-# Calculate SA Spreads and US, Turkey and Brazil Spreads with SA 3 Month Yields
+```{r}
 
 #bonds_10y %>% pull(Name) %>% unique()
 
-Names_2yr <- c("Philippines_2yr", "Germany_2yr", "US_2yr")
+Names_2yr <- c("Thailand_2yr", "Germany_2yr", "US_2yr")
 
-Names_10yr <- c("Philippines_10Yr", "Germany_10Yr", "US_10Yr")
+Names_10yr <- c("Thailand_10Yr", "Germany_10Yr", "US_10Yr")
 
 
 bonds_2y10y_combine <-  bonds_2y %>% 
@@ -379,7 +385,7 @@ bonds_2y10y_spread <- bonds_2y10y_combine %>%
     group_by(date) %>% 
     
     mutate(US_10Yr2Yr = US_10Yr - US_2yr, 
-           PHILL_10Yr2Yr = Philippines_10Yr - Philippines_2yr,
+           Thai_10Yr2Yr = Thailand_10Yr - Thailand_2yr,
            Germany_10Yr2Yr = Germany_10Yr - Germany_2yr) %>% 
     
     ungroup() %>% 
@@ -394,10 +400,10 @@ bonds_2y10y_spread <- bonds_2y10y_combine %>%
     
     filter(date >= as.Date("2000/01/01"))) %>% 
     
-    select(date, SA_10Yr2Yr, US_10Yr2Yr,PHILL_10Yr2Yr, Germany_10Yr2Yr) %>% 
+    select(date, SA_10Yr2Yr, US_10Yr2Yr,Thai_10Yr2Yr, Germany_10Yr2Yr) %>% 
     
     pivot_longer(c("US_10Yr2Yr", 
-                   #"PHILL_10Yr2Yr", 
+                   "Thai_10Yr2Yr", 
                    "Germany_10Yr2Yr",
                    "SA_10Yr2Yr"), 
                  names_to = "Spreads", values_to = "Rates") 
@@ -408,13 +414,13 @@ compare_spread_plot <- bonds_2y10y_spread %>%
     
     arrange(date) %>% 
     
-    ggplot() + 
+    ggplot() +
     
     geom_line(aes(date, Rates, colour = Spreads), alpha = 0.8) +
     
     labs(title = "Relative Long Term Spreads", 
-         y = "Spreads (Yields)", x ="", 
-         subtitle = "Includes US, Philippines, Germany and SA") +
+         y = "Yield Spreads", x ="", 
+         subtitle = "Includes US, Thailand, Germany and SA") +
     
     fmxdat::theme_fmx(title.size = ggpts(30), subtitle.size = ggpts(22), legend.size = ggpts(20)) + 
     
@@ -424,24 +430,5 @@ fmxdat::finplot(compare_spread_plot, x.date.type = "%Y%m", x.vert = TRUE)
 ```
 
 
-
-
-
-
-
-
-\newpage
-
-# References {-}
-
-<div id="refs"></div>
-
-
-# Appendix {-}
-
-## Appendix A {-}
-
-Some appendix information here
-
-## Appendix B {-}
+The graph strongly supports the notion that the local yield spread is very high. This in part can be due to strong foreign demand for new South African bonds since 2019.
 

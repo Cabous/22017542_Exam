@@ -167,40 +167,54 @@
 
 
 
+%titlepage
+\thispagestyle{empty}
+\begin{center}
+\begin{minipage}{0.75\linewidth}
+    \centering
+%Entry1
+    {\uppercase{\huge Question 2 - Yield Spread\par}}
+    \vspace{2cm}
+%Author's name
+    {\LARGE \textbf{Carel Olivier}\par}
+    \vspace{1cm}
+%University logo
+\begin{center}
+    \includegraphics[width=\linewidth]{Tex/yield curve.png}
+\end{center}
+\vspace{1cm}
+%Supervisor's Details
+\begin{center}
+    {\Large 22017542\par}
+    \vspace{1cm}
+%Degree
+    {\large \par}
+    \vspace{1cm}
+%Institution
+    {\large \par}
+    \vspace{1cm}
+%Date
+    {\large }
+%More
+    {\normalsize }
+%More
+    {\normalsize }
+\end{center}
+\end{minipage}
+\end{center}
+\clearpage
+
+
 \begin{frontmatter}  %
 
-\title{Question 2: Yield Spread}
+\title{}
 
 % Set to FALSE if wanting to remove title (for submission)
-
-
-
-
-\author[Add1]{Nico Katzke\footnote{\textbf{Contributions:}
-  \newline \emph{The authors would like to thank no institution for
-  money donated to this project. Thank you sincerely.}}}
-\ead{nfkatzke@gmail.com}
-
-
-
-
-
-\address[Add1]{Prescient Securities, Cape Town, South Africa}
-
 
 
 \vspace{1cm}
 
 
-\begin{keyword}
-\footnotesize{
-Multivariate GARCH \sep Kalman Filter \sep Copula \\
-\vspace{0.3cm}
-}
-\footnotesize{
-\textit{JEL classification} L250 \sep L100
-}
-\end{keyword}
 
 
 
@@ -231,48 +245,47 @@ Multivariate GARCH \sep Kalman Filter \sep Copula \\
 
 
 
+\hypertarget{short-introduction}{%
+\section{Short Introduction}\label{short-introduction}}
+
+Economists claim that the current yield spreads in the local mid to
+longer dated bond yields have since 2020 been the highest in decades. As
+such, I will conduct a brief analysis to investigate this claim.
+
+A yield spread is simply the difference between the rate of return on
+different debt instruments which have varying maturities. I will start
+by importing the data and plotting the different yield spreds for SA.
+
 \hypertarget{yield-spreads}{%
-\section{Yield Spreads}\label{yield-spreads}}
-
-\hypertarget{compare-spreads}{%
-\section{Compare spreads}\label{compare-spreads}}
-
-\hypertarget{plot-the-spreads}{%
-\section{Plot the spreads}\label{plot-the-spreads}}
+\section{Yield spreads}\label{yield-spreads}}
 
 \includegraphics{Question2_files/figure-latex/unnamed-chunk-3-1.pdf}
 
+I can confirm that the current yield spreads in mid to longer dated
+bonds are the highest they have been in two decades. However, the yield
+spread between the 2 year and 3 month (short-term) local bonds have
+remained relatively stable.
+
+Next I will try to analyse the relationship between the SA 10 Year
+Break-even inflation estimate, SA inflation, and the local long yield
+spread.
+
 \includegraphics{Question2_files/figure-latex/unnamed-chunk-4-1.pdf}
+
+From the graph it appears that there is an inverse relationship between
+the break even inflation estimate and local longer dated bond yields.
+Finally, I will compare the the local spread to international spreads. I
+will specifically look at Germany, Thailand and the US.
 
 \includegraphics{Question2_files/figure-latex/unnamed-chunk-5-1.pdf}
 
 There seems to be some co-movement
 
-\includegraphics{Question2_files/figure-latex/unnamed-chunk-6-1.pdf}
+\includegraphics{Question2_files/figure-latex/unnamed-chunk-7-1.pdf}
 
-\newpage
-
-\hypertarget{references}{%
-\section*{References}\label{references}}
-\addcontentsline{toc}{section}{References}
-
-\hypertarget{refs}{}
-\begin{CSLReferences}{0}{0}
-\end{CSLReferences}
-
-\hypertarget{appendix}{%
-\section*{Appendix}\label{appendix}}
-\addcontentsline{toc}{section}{Appendix}
-
-\hypertarget{appendix-a}{%
-\subsection*{Appendix A}\label{appendix-a}}
-\addcontentsline{toc}{subsection}{Appendix A}
-
-Some appendix information here
-
-\hypertarget{appendix-b}{%
-\subsection*{Appendix B}\label{appendix-b}}
-\addcontentsline{toc}{subsection}{Appendix B}
+The graph strongly supports the notion that the local yield spread is
+very high. This in part can be due to strong foreign demand for new
+South African bonds since 2019.
 
 \bibliography{Tex/ref}
 
