@@ -3,45 +3,26 @@
 # Remove comments and add values where applicable.
 # The descriptions below should be self-explanatory
 
-title: "Helping You Write Academic Papers in R using Texevier"
+#title: "Question 2: Yield Spread"
 #subtitle: "This will appear as Right Header"
 
 documentclass: "elsarticle"
 
 # --------- Thesis title (Optional - set to FALSE by default).
 # You can move the details below around as you please.
-Thesis_FP: FALSE
-# Entry1: "An unbelievable study with a title spanning multiple lines."
-# Entry2: "\\textbf{Nico Katzke}" # textbf for bold
-# Entry3: "A thesis submitted toward the degree of Doctor of Philosophy"
-# Uni_Logo: Tex/Logo.png # Place a logo in the indicated location (from your root, e.g. defaults to ~/Tex/Logo.png) and uncomment this line. Leave uncommented for no image
+Thesis_FP: yes
+Entry1: Question 4 - Volatility Comparison
+Entry2: \textbf{Carel Olivier} # textbf for bold
+Entry3: 22017542
+Uni_Logo: Tex/pca.jpg # Place a logo in the indicated location (from your root, e.g. defaults to ~/Tex/Logo.png) and uncomment this line. Leave uncommented for no image
 # Logo_width: 0.3 # If using a logo - use this to set width (size) of image
-# Entry4: "Under the supervision of: \\vfill Prof. Joe Smith and Dr. Frank Smith"
-# Entry5: "Stellenbosch University"
+#Entry4: 
+#Entry5: Stellenbosch University
 # Entry6: April 2020
 # Entry7:
 # Entry8:
 
-# --------- Front Page
-# Comment: ----- Follow this pattern for up to 5 authors
-AddTitle: TRUE # Use FALSE when submitting to peer reviewed platform. This will remove author names.
-Author1: "Nico Katzke^[__Contributions:__  \\newline _The authors would like to thank no institution for money donated to this project. Thank you sincerely._]"  # First Author - note the thanks message displayed as an italic footnote of first page.
-Ref1: "Prescient Securities, Cape Town, South Africa" # First Author's Affiliation
-Email1: "nfkatzke\\@gmail.com" # First Author's Email address
 
-Author2: "John Smith"
-Ref2: "Some other Institution, Cape Town, South Africa"
-Email2: "John\\@gmail.com"
-CommonAffiliation_12: TRUE # If Author 1 and 2 have a common affiliation. Works with _13, _23, etc.
-
-Author3: "John Doe"
-Email3: "Joe\\@gmail.com"
-
-CorrespAuthor_1: TRUE  # If corresponding author is author 3, e.g., use CorrespAuthor_3: TRUE
-
-# Comment out below to remove both. JEL Codes only given if keywords also given.
-keywords: "Multivariate GARCH \\sep Kalman Filter \\sep Copula" # Use \\sep to separate
-JELCodes: "L250 \\sep L100"
 
 # ----- Manage headers and footers:
 #BottomLFooter: $Title$
@@ -92,7 +73,7 @@ output:
     fig_width: 3.5 # Adjust default figure sizes. This can also be done in the chunks of the text.
     fig_height: 3.5
 abstract: |
-  Abstract to be written here. The abstract should not be too long and should provide the reader with a good understanding what you are writing about. Academic papers are not like novels where you keep the reader in suspense. To be effective in getting others to read your paper, be as open and concise about your findings here as possible. Ideally, upon reading your abstract, the reader should feel he / she must read your paper in entirety.
+
 ---
 
 <!-- First: Set your default preferences for chunk options: -->
@@ -120,7 +101,9 @@ list.files('C:/Users/Cabous/OneDrive/Desktop/22017542_Exam/code/', full.names = 
 
 ```
 
-# Import Data
+# Short Introduction
+
+Using the Top 40 Index data I will perform Principal Component Analysis (PCA) as well as a rolling constituent correlation analysis to better understand the concentration and commonality of returns for the J200 index.
 
 ```{r}
 
@@ -131,7 +114,7 @@ T40 <- read_rds("data/T40.rds")
 
 # Calculate Returns
 
-```{r}
+```{r, include=FALSE}
 
 T40_Q4 <- T40 %>% 
     
@@ -187,6 +170,8 @@ fviz_screeplot(pca, ncp = 10)
 fviz_pca_var(pca, col.var = "steelblue") + theme_minimal()
 ```
 
+There are 92 components that explain a percentage of the total variation in the T40 returns. PC1 explains 8 % of the total variance, which is the most out of the 92 PCA’s.
+
 ```{r}
 fviz_contrib(pca, choice = "var", axes = 1, top = 10)
 ```
@@ -195,8 +180,15 @@ fviz_contrib(pca, choice = "var", axes = 1, top = 10)
 fviz_contrib(pca, choice = "var", axes = 2, top = 10)
 ```
 
-* Calculate Rolling Correlation
+
 # Calculate rolling constituent correlation
+
+Next I will calculate the rolling average pairwise correlations between all the stocks. That will require calculating the rolling pairwise correlation between all the stock combinations in the index and then take the mean of all those. Thus, I will tackle the problem in bite-sized pieces. The graph below shows the 90-day Mean Rolling Constituent Correlation. I sourced the code I used for the function *rolling_cor_func* , from the following link:
+
+(https://robotwealth.com/rolling-mean-correlations-in-the-tidyverse/)
+
+
+* Calculate Rolling Correlation
 
 ```{r}
 df_Q4 <- T40_Q4
@@ -248,20 +240,4 @@ finplot(mean_cor_plot)
 
 
 
-
-
-\newpage
-
-# References {-}
-
-<div id="refs"></div>
-
-
-# Appendix {-}
-
-## Appendix A {-}
-
-Some appendix information here
-
-## Appendix B {-}
 

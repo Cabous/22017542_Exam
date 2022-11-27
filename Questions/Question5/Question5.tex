@@ -167,59 +167,54 @@
 
 
 
+%titlepage
+\thispagestyle{empty}
+\begin{center}
+\begin{minipage}{0.75\linewidth}
+    \centering
+%Entry1
+    {\uppercase{\huge Question 5 - Volatility and GARCH estimates\par}}
+    \vspace{2cm}
+%Author's name
+    {\LARGE \textbf{Carel Olivier}\par}
+    \vspace{1cm}
+%University logo
+\begin{center}
+    \includegraphics[width=\linewidth]{Tex/garch.png}
+\end{center}
+\vspace{1cm}
+%Supervisor's Details
+\begin{center}
+    {\Large 22017542\par}
+    \vspace{1cm}
+%Degree
+    {\large \par}
+    \vspace{1cm}
+%Institution
+    {\large \par}
+    \vspace{1cm}
+%Date
+    {\large }
+%More
+    {\normalsize }
+%More
+    {\normalsize }
+\end{center}
+\end{minipage}
+\end{center}
+\clearpage
+
+
 \begin{frontmatter}  %
 
-\title{Helping You Write Academic Papers in R using Texevier}
+\title{}
 
 % Set to FALSE if wanting to remove title (for submission)
 
 
-
-
-\author[Add1]{Nico Katzke\footnote{\textbf{Contributions:}
-  \newline \emph{The authors would like to thank no institution for
-  money donated to this project. Thank you sincerely.}}}
-\ead{nfkatzke@gmail.com}
-
-\author[Add1,Add2]{John Smith}
-\ead{John@gmail.com}
-
-\author[Add1,Add2]{John Doe}
-\ead{Joe@gmail.com}
-
-
-
-\address[Add1]{Prescient Securities, Cape Town, South Africa}
-\address[Add2]{Some other Institution, Cape Town, South Africa}
-
-\cortext[cor]{Corresponding author: Nico Katzke\footnote{\textbf{Contributions:}
-  \newline \emph{The authors would like to thank no institution for
-  money donated to this project. Thank you sincerely.}}}
-
-\begin{abstract}
-\small{
-Abstract to be written here. The abstract should not be too long and
-should provide the reader with a good understanding what you are writing
-about. Academic papers are not like novels where you keep the reader in
-suspense. To be effective in getting others to read your paper, be as
-open and concise about your findings here as possible. Ideally, upon
-reading your abstract, the reader should feel he / she must read your
-paper in entirety.
-}
-\end{abstract}
-
 \vspace{1cm}
 
 
-\begin{keyword}
-\footnotesize{
-Multivariate GARCH \sep Kalman Filter \sep Copula \\
-\vspace{0.3cm}
-}
-\footnotesize{
-\textit{JEL classification} L250 \sep L100
-}
-\end{keyword}
 
 
 
@@ -250,39 +245,43 @@ Multivariate GARCH \sep Kalman Filter \sep Copula \\
 
 
 
-\hypertarget{question-5}{%
-\section{Question 5}\label{question-5}}
+\hypertarget{short-introduction}{%
+\section{Short Introduction}\label{short-introduction}}
 
-\hypertarget{volatility}{%
-\section{Volatility}\label{volatility}}
+The study of volatility is particularly important in financial
+modelling. Thus, in this question I will look at the South African ZAR
+since it has been quite volatile over the past couple of years. More
+specifically, I will conduct a simple univariate-GARCH estimation to
+analyse the volatility of the Rand.
 
-\begin{verbatim}
-##  [1] "Australia_IV"   "Brazil_IV"      "Canada_IV"      "Chile_IV"      
-##  [5] "China_IV"       "Columbia_IV"    "Czech_IV"       "Denmark_IV"    
-##  [9] "EU_IV"          "HongKong_IV"    "Hungary_IV"     "India_IV"      
-## [13] "Israel_IV"      "Japan_IV"       "Malaysia_IV"    "Mexico_IV"     
-## [17] "Norway_IV"      "NZ_IV"          "Peru_IV"        "Philipines_IV" 
-## [21] "Poland_IV"      "Romania_IV"     "Russia_IV"      "Saudi_IV"      
-## [25] "Singapore_IV"   "SouthAfrica_IV" "SouthKorea_IV"  "Sweden_IV"     
-## [29] "Taiwan_IV"      "Thailand_IV"    "Turkey_IV"      "UK_IV"
-\end{verbatim}
+\hypertarget{implied-volatility}{%
+\section{Implied Volatility}\label{implied-volatility}}
+
+I will start by looking at implied volatility. The market's estimate of
+how much a currency pair will fluctuate over a certain period in the
+future is known as implied volatility. Option traders can use a currency
+volatility index to price options on currency pairs. Implied volatility
+is generally considered a measure of sentiment.
 
 \includegraphics{Question5_files/figure-latex/unnamed-chunk-3-1.pdf}
 
 This suggests that the market foresees the highest future volatility for
 the Rand, for this sub-sample.
 
-\begin{verbatim}
-## Q(m) of squared series(LM test):  
-## Test statistic:  1016.07  p-value:  0 
-## Rank-based Test:  
-## Test statistic:  421.1523  p-value:  0 
-## Q_k(m) of squared series:  
-## Test statistic:  1012.159  p-value:  0 
-## Robust Test(5%) :  210.8329  p-value:  0
-\end{verbatim}
+This suggests that the market foresees the highest future volatility for
+the Rand {[}for this sub-sample{]}.
+
+Now I'll calculate the returns to analyse the Auto-Persistence in
+Returns
 
 \includegraphics{Question5_files/figure-latex/unnamed-chunk-5-1.pdf}
+
+From the graph above it is clear that there is persistence in certain
+periods of USDZAR returns. Moreover, we have first and second order
+persistence as well as clear evidence of long-term memory in the second
+order process.
+
+Let's investigate further\ldots{}
 
 \includegraphics{Question5_files/figure-latex/unnamed-chunk-6-1.pdf}
 
@@ -290,35 +289,8 @@ the Rand, for this sub-sample.
 
 \includegraphics{Question5_files/figure-latex/unnamed-chunk-8-1.pdf}
 
-\begin{verbatim}
-## 
-##  Box-Ljung test
-## 
-## data:  coredata(xts_zar_rtn^2)
-## X-squared = 1078.3, df = 12, p-value < 2.2e-16
-\end{verbatim}
-
-\hypertarget{find-best-model}{%
-\section{Find best model}\label{find-best-model}}
-
-\begin{verbatim}
-##                 sGARCH  gjrGARCH    eGARCH    apARCH
-## Akaike       -6.397628 -6.400773 -6.399399 -6.396697
-## Bayes        -6.391791 -6.393769 -6.392394 -6.388525
-## Shibata      -6.397630 -6.400775 -6.399401 -6.396700
-## Hannan-Quinn -6.395596 -6.398334 -6.396960 -6.393852
-\end{verbatim}
-
 \hypertarget{fit-model}{%
 \section{Fit Model}\label{fit-model}}
-
-\begin{verbatim}
-##                        t-value         prob sig
-## Sign Bias           0.04213364 9.663936e-01    
-## Negative Sign Bias  3.40498413 6.662547e-04 ***
-## Positive Sign Bias  0.92248723 3.563136e-01    
-## Joint Effect       23.82492612 2.717301e-05 ***
-\end{verbatim}
 
 \begin{table}[ht]
 \centering
@@ -326,31 +298,31 @@ the Rand, for this sub-sample.
   \hline
  &  Estimate &  Std. Error &  t value & Pr($>$$|$t$|$) \\ 
   \hline
-mu & 0.00 & 0.00 & 1.46 & 0.15 \\ 
-  ar1 & -0.00 & 0.01 & -0.19 & 0.85 \\ 
-  omega & 0.00 & 0.00 & 2.03 & 0.04 \\ 
-  alpha1 & 0.07 & 0.01 & 7.41 & 0.00 \\ 
-  beta1 & 0.92 & 0.01 & 91.66 & 0.00 \\ 
+mu & 0.00029 & 0.00012 & 2.3906 & 0.0168 \\ 
+  ar1 & -0.00039 & 0.01383 & -0.0282 & 0.9775 \\ 
+  omega & 0.00000 & 0.00000 & 2.7404 & 0.0061 \\ 
+  alpha1 & 0.07925 & 0.00543 & 14.5894 & 0.0000 \\ 
+  beta1 & 0.92896 & 0.00748 & 124.1921 & 0.0000 \\ 
+  gamma1 & -0.03796 & 0.00803 & -4.7290 & 0.0000 \\ 
    \hline
 \end{tabular}
 \end{table}
 
-\begin{verbatim}
-## [1] 0.9895234
-\end{verbatim}
+\includegraphics{Question5_files/figure-latex/unnamed-chunk-13-1.pdf}
 
 \includegraphics{Question5_files/figure-latex/unnamed-chunk-14-1.pdf}
-
-\includegraphics{Question5_files/figure-latex/unnamed-chunk-15-1.pdf}
 
 \begin{verbatim}
 ## 
 ## please wait...calculating quantiles...
 \end{verbatim}
 
-\includegraphics{Question5_files/figure-latex/unnamed-chunk-16-1.pdf}
+\includegraphics{Question5_files/figure-latex/unnamed-chunk-15-1.pdf}
 
-\includegraphics{Question5_files/figure-latex/unnamed-chunk-17-1.pdf}
+Lets investigate further by compare smoothed ZAR Volatility to mean
+Global volatility
+
+\includegraphics{Question5_files/figure-latex/unnamed-chunk-16-1.pdf}
 
 \newpage
 
