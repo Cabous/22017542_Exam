@@ -49,7 +49,8 @@ list.files('C:/Users/Cabous/OneDrive/Desktop/22017542_Exam/code/', full.names = 
 
 For this question I put my fund’s performance into perspective by
 comparing it to the benchmark (Capped SWIX) as well as some industry
-peers (ASISA active managers).
+peers (ASISA active managers). I have also created a PowerPoint
+presentation located in the Tex folder of Question 1.
 
 I will use a rolling return approach to compare my AI fund’s returns to
 the relevant funds.
@@ -625,6 +626,10 @@ South African bonds since 2019.
 
 # Question 3: Portfolio Construction
 
+Firstly I will compare the SWIX and ALSI by looking at the performance
+of different size indexes (large and small caps). I did not include Mid
+Caps since the graphs did not make sense.
+
 ## Import Data
 
 ``` r
@@ -632,6 +637,8 @@ T40 <- read_rds("data/T40.rds")
 
 RebDays <- read_rds("data/Rebalance_days.rds")
 ```
+
+## Large Caps
 
 ``` r
 # First: calculate ordinary returns
@@ -650,7 +657,7 @@ W_xts_L200 <- T40 %>%
     
     select(date, Tickers, Return, Index_Name, J200) %>% 
     
-    #mutate(J200 = J200*Return) %>% 
+    mutate(J200 = J200*Return) %>% 
     
     filter(date >= as.Date("2010/01/01")) %>% 
     
@@ -711,7 +718,7 @@ W_xts_L400 <- T40 %>%
     
     #mutate(Return = coalesce(Return, 0)) %>% 
     
-   # mutate(J400 = J400*Return) %>%
+    mutate(J400 = J400*Return) %>%
     
     filter(Index_Name == "Large_Caps") %>% 
     
@@ -772,7 +779,7 @@ Portf_Rets_L %>%
     arrange(date) %>% 
     
     #group_by(Index) %>% 
-    
+     
 # Set NA Rets to zero to make cumprod work:
 #mutate(Rets = coalesce(ret, 0)) %>% 
     
@@ -797,7 +804,7 @@ Portf_Rets_L %>%
 
 ![](README_files/figure-markdown_github/unnamed-chunk-16-1.png)
 
-# Mid-Caps
+## Small Caps
 
 ``` r
 W_xts_M200 <- T40 %>% 
@@ -968,6 +975,12 @@ Portf_Rets_M %>%
 
 ![](README_files/figure-markdown_github/unnamed-chunk-17-1.png)
 
+To answer the JSE’s question on applying capping to the indexes I will
+be looking at the impact different capping levels would have had on both
+the SWIX and ALSI (6% and 10%).
+
+-   Construct Capped Portfolio’s
+
 ``` r
 # Construct Capped Portfolio and Determine Performance for ALSI
 
@@ -1041,7 +1054,7 @@ reb_SWIX <- T40 %>%
     
     mutate(weight = coalesce(weight , 0))
   
-# Apply Proportional_Cap_Foo to ALSI to get capped return for cap of 6%
+# Apply Proportional_Cap_Foo to SWIX to get capped return for cap of 6%
 
 Capped_df <- reb_SWIX %>% 
     
@@ -1087,67 +1100,121 @@ rename(SWIX = portfolio.returns)
 capped_indices <- left_join(ALSI_capped, SWIX_capped, by = "date") %>% 
     
     pivot_longer(c("ALSI", "SWIX"), names_to = "Meth", values_to = "returns")
+```
 
-# Calculate Uncapped Return for ALSI
-ALSI_wts <- T40 %>% 
+``` r
+# Apply Proportional_Cap_Foo to ALSI to get capped return for cap of 6%
+
+Capped_df_6p <- reb_ALSI %>% 
     
-    filter(date %in% RebDays$date) %>%
+    group_split(RebalanceTime) %>% 
     
-    mutate(RebalanceTime = format(date, "%Y%B")) %>% 
+    map_df(~Proportional_Cap_Foo(., W_Cap = 0.06) ) %>% 
     
-    rename(weight = J200) %>% 
-    
-    mutate(weight = coalesce(weight , 0)) %>%
-    
-    select(date, Tickers, Return, weight, RebalanceTime) %>% 
+    select(-RebalanceTime)
+ 
+
+ALSI_wts_6p <- Capped_df_6p %>% 
     
     tbl_xts(cols_to_xts = weight, spread_by = Tickers)
 
 
-ALSI_wts[is.na(ALSI_wts)] <- 0
+ALSI_rts_6p <- T40 %>% 
+    
+    filter(Tickers %in% unique(Capped_df_6p$Tickers)) %>% 
+    
+    tbl_xts(cols_to_xts = Return, spread_by = Tickers)
 
-ALSI_rts[is.na(ALSI_rts)] <- 0
 
-ALSI_capped <- rmsfuns::Safe_Return.portfolio(R = ALSI_rts, weights = ALSI_wts, 
+ALSI_wts_6p[is.na(ALSI_wts_6p)] <- 0
+
+ALSI_rts_6p[is.na(ALSI_rts_6p)] <- 0
+
+
+ALSI_capped_6p <- rmsfuns::Safe_Return.portfolio(R = ALSI_rts_6p, weights = ALSI_wts_6p, 
     lag_weights = T) %>% 
     
     xts_tbl() %>% 
     
-rename(ALSI = portfolio.returns)
+    rename(ALSI = portfolio.returns)
+```
 
-# Calculate Uncapped Return for SWIX
+    ## Warning in Return.portfolio.geometric(R = R, weights = weights, wealth.index =
+    ## wealth.index, : The weights for one or more periods do not sum up to 1: assuming
+    ## a return of 0 for the residual weights
+
+``` r
+# Apply Proportional_Cap_Foo to SwIX to get capped return for cap of 10%
+
+Capped_df_10p <- reb_SWIX %>% 
+    
+    group_split(RebalanceTime) %>% 
+    
+    map_df(~Proportional_Cap_Foo(., W_Cap = 0.1) ) %>% 
+    
+    select(-RebalanceTime)
  
-SWIX_wts <- T40 %>% 
-    
-    filter(date %in% RebDays$date) %>% 
-    
-    mutate(RebalanceTime = format(date, "%Y%B")) %>% 
-    
-    rename(weight = J400) %>% 
-    
-    mutate(weight = coalesce(weight , 0)) %>% 
-    
-    select(date, Tickers, Return, weight, RebalanceTime) %>% 
+
+SWIX_wts_10p <- Capped_df_10p %>% 
     
     tbl_xts(cols_to_xts = weight, spread_by = Tickers)
 
 
-SWIX_wts[is.na(SWIX_wts)] <- 0
+SWIX_rts_10p <- T40 %>% 
+    
+    filter(Tickers %in% unique(Capped_df_10p$Tickers)) %>%
+    
+    tbl_xts(cols_to_xts = Return, spread_by = Tickers)
 
-SWIX_rts[is.na(SWIX_rts)] <- 0
 
-SWIX_capped <- rmsfuns::Safe_Return.portfolio(R = SWIX_rts, weights = SWIX_wts, 
+SWIX_wts_10p[is.na(SWIX_wts_10p)] <- 0
+
+SWIX_rts_10p[is.na(SWIX_rts_10p)] <- 0
+
+
+SWIX_capped_10p <- rmsfuns::Safe_Return.portfolio(R = SWIX_rts_10p, weights = SWIX_wts_10p, 
     lag_weights = T) %>% 
     
     xts_tbl() %>% 
     
 rename(SWIX = portfolio.returns)
+```
 
-# Combine and Plot
+    ## Warning in Return.portfolio.geometric(R = R, weights = weights, wealth.index =
+    ## wealth.index, : The weights for one or more periods do not sum up to 1: assuming
+    ## a return of 0 for the residual weights
 
-ALSI_SWIX <- left_join(ALSI_capped, SWIX_capped, by = "date") %>% 
+``` r
+# Combine and Plot Performance
+
+capped_indices_6p <- left_join(ALSI_capped_6p, SWIX_capped_10p, by = "date") %>% 
+    
+    pivot_longer(c("ALSI", "SWIX"), names_to = "Meth", values_to = "returns")
+
+
+
+ALSI_SWIX_6p <- left_join(ALSI_capped_6p, SWIX_capped_10p, by = "date") %>% 
     
     pivot_longer(c("ALSI", "SWIX"), names_to = "Meth", values_to = "Returns")
+
+
+q2_p3_6p <- capped_indices_6p %>% 
+    
+    group_by(Meth) %>%
+    
+    mutate(Idx = cumprod(1 + returns)) %>% 
+    
+ggplot() + 
+    
+geom_line(aes(date, Idx, colour = Meth), alpha = 0.8) + 
+    
+labs(subtitle = "ALSI capped at 6% and SWIX at 10%", 
+    x = "", y = "Cumulative Return") +
+    
+    fmx_cols() + 
+    
+fmxdat::theme_fmx(subtitle.size = ggpts(20))
+
 
 q2_p3 <- capped_indices %>% 
     
@@ -1166,38 +1233,25 @@ labs(subtitle = "ALSI capped at 10% and SWIX at 6%",
     
 fmxdat::theme_fmx(subtitle.size = ggpts(20))
 
-
-q2_p4 <- ALSI_SWIX %>% 
-    
-    group_by(Meth) %>%
-    
-    mutate(Idx = cumprod(1 + Returns)) %>% 
-    
-ggplot() + 
-    
-geom_line(aes(date, Idx, colour = Meth), alpha = 0.8) + 
-    
-labs(subtitle = "Uncapped Index Calculation for ALSI and SWIX", 
-    x = "", y = "Cumulative Return") + 
-    
-    fmx_cols() +
-    
-fmxdat::theme_fmx(subtitle.size = ggpts(20))
-
-plot_grid(finplot(q2_p3), finplot(q2_p4), labels = list(title = "Comparing Capped and Uncapped returns of ALSI and SWIX"), label_size = ggpts(30), align = "h")
+plot_grid(finplot(q2_p3), finplot(q2_p3_6p), labels = list(title = "Comparing Capped returns of ALSI and SWIX"), label_size = ggpts(30), align = "h")
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-18-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-19-1.png)
 
-# Question 4
+# Question 4: Volatility Comparison
 
-# Import Data
+Using the Top 40 Index data I will perform Principal Component Analysis
+(PCA) as well as a rolling constituent correlation analysis to better
+understand the concentration and commonality of returns for the J200
+index.
+
+## Import Data
 
 ``` r
 T40 <- read_rds("data/T40.rds")
 ```
 
-# Calculate Returns
+-   Calculate Returns
 
 ``` r
 T40_Q4 <- T40 %>% 
@@ -1243,31 +1297,44 @@ Mu <- RiskPortfolios::meanEstimation(return_mat_Nodate)
 
 pca <- prcomp(return_mat_Nodate,center=TRUE, scale.=TRUE)
 
-
 # Plot
 
 fviz_screeplot(pca, ncp = 10)
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-21-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-22-1.png)
+
+There are 92 components that explain a percentage of the total variation
+in the T40 returns. PC1 explains 8 % of the total variance, which is the
+most out of the 92 PCA’s.
 
 ``` r
 fviz_pca_var(pca, col.var = "steelblue") + theme_minimal()
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-22-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-23-1.png)
 
 ``` r
 fviz_contrib(pca, choice = "var", axes = 1, top = 10)
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-22-2.png)
+![](README_files/figure-markdown_github/unnamed-chunk-23-2.png)
 
 ``` r
 fviz_contrib(pca, choice = "var", axes = 2, top = 10)
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-22-3.png)
+![](README_files/figure-markdown_github/unnamed-chunk-23-3.png)
+
+Next I will calculate the rolling average pairwise correlations between
+all the stocks. That will require calculating the rolling pairwise
+correlation between all the stock combinations in the index and then
+take the mean of all those. Thus, I will tackle the problem in
+bite-sized pieces.The graph below shows the 90-day Mean Rolling
+Constituent Correlation. I sourced the code I used for the function
+*rolling_cor_func* , from the following link:
+
+(<https://robotwealth.com/rolling-mean-correlations-in-the-tidyverse/>)
 
 -   Calculate Rolling Correlation
 
@@ -1318,7 +1385,7 @@ mean_cor_plot <- mean_pw_cors %>%
 finplot(mean_cor_plot)
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-23-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-24-1.png)
 
 # Question 5
 
@@ -1386,7 +1453,7 @@ IV_plot <- cncyIV %>%
 IV_plot
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-26-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-27-1.png)
 
 This suggests that the market foresees the highest future volatility for
 the Rand, for this sub-sample.
@@ -1458,12 +1525,6 @@ ggplot(PlotRtn) +
     fmxdat::theme_fmx()
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-28-1.png)
-
-``` r
-forecast::Acf(xts_zar_rtn, main = "ACF: Equally Weighted Return")
-```
-
 ![](README_files/figure-markdown_github/unnamed-chunk-29-1.png)
 
 ``` r
@@ -1473,16 +1534,22 @@ forecast::Acf(xts_zar_rtn, main = "ACF: Equally Weighted Return")
 ![](README_files/figure-markdown_github/unnamed-chunk-30-1.png)
 
 ``` r
-forecast::Acf(xts_zar_rtn^2, main = "ACF: Squared Equally Weighted Return")
+forecast::Acf(xts_zar_rtn, main = "ACF: Equally Weighted Return")
 ```
 
 ![](README_files/figure-markdown_github/unnamed-chunk-31-1.png)
 
 ``` r
-forecast::Acf(abs(xts_zar_rtn), main = "ACF: Absolute Equally Weighted Return")
+forecast::Acf(xts_zar_rtn^2, main = "ACF: Squared Equally Weighted Return")
 ```
 
 ![](README_files/figure-markdown_github/unnamed-chunk-32-1.png)
+
+``` r
+forecast::Acf(abs(xts_zar_rtn), main = "ACF: Absolute Equally Weighted Return")
+```
+
+![](README_files/figure-markdown_github/unnamed-chunk-33-1.png)
 
 ``` r
 Box.test(coredata(xts_zar_rtn^2), type = "Ljung-Box", lag = 12)
@@ -1581,7 +1648,7 @@ ggplot() +
 fmxdat::finplot(Con_var_plot, y.pct = T, y.pct_acc = 1)
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-38-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-39-1.png)
 
 ``` r
 news_plot <- newsimpact(z = NULL, garch_fit_sGARCH)
@@ -1590,7 +1657,7 @@ plot(news_plot$zx, news_plot$zy, ylab = news_plot$yexpr, xlab = news_plot$xexpr,
     main = "News Impact Curve")
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-39-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-40-1.png)
 
 ``` r
 plot(garch_fit_sGARCH, which = "all")
@@ -1599,7 +1666,7 @@ plot(garch_fit_sGARCH, which = "all")
     ## 
     ## please wait...calculating quantiles...
 
-![](README_files/figure-markdown_github/unnamed-chunk-40-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-41-1.png)
 
 ``` r
 # Lets investigate further
@@ -1652,7 +1719,7 @@ Vol_compare_plot <- sigma %>%
 finplot(Vol_compare_plot)
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-41-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-42-1.png)
 
 # Question 6
 
@@ -1851,7 +1918,7 @@ DCC_oil_plot <- ggplot(dcc.time.var.cor %>%
 plot_grid(DCC_eq_plot, DCC_bond_plot, DCC_RE_plot , DCC_oil_plot, labels = c('', '', '',''))
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-48-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-49-1.png)
 
 -   Go Garch
 
@@ -2004,7 +2071,7 @@ GO_oil_plot <- ggplot(gog.time.var.cor %>%
 plot_grid(GO_eq_plot, GO_bond_plot, GO_RE_plot , GO_oil_plot, labels = c('', '', '',''))
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-51-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-52-1.png)
 
 ``` r
 library(factoextra)
@@ -2085,7 +2152,7 @@ AC_PCA_plot$rotation
 pairs.panels(asset_classes_pca)
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-52-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-53-1.png)
 
 ``` r
 gviolion <- asset_classes_pca %>% 
@@ -2103,7 +2170,7 @@ gviolion <- asset_classes_pca %>%
 fmxdat::finplot(gviolion, y.pct = T, y.pct_acc = 1, x.vert = T)
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-53-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-54-1.png)
 
 # Question 7
 
