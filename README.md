@@ -36,15 +36,25 @@ library(factoextra)
     ## Welcome! Want to learn more? See two factoextra-related books at https://goo.gl/ve3WBa
 
 ``` r
-pacman::p_load(cowplot, glue, tbl2xts)
 pacman::p_load("MTS", "robustbase")
 
 pacman::p_load("tidyverse", "devtools", "rugarch", "rmgarch", 
      "forecast", "tbl2xts", "lubridate", "PerformanceAnalytics", 
-     "ggthemes", "dplyr", "cowplot", "fmxdat") 
+     "ggthemes", "dplyr", "cowplot", "fmxdat", "glue","MTS", "robustbase","tidyr") 
 
 list.files('C:/Users/Cabous/OneDrive/Desktop/22017542_Exam/code/', full.names = T, recursive = T) %>% .[grepl('.R', .)] %>% as.list() %>% walk(~source(.))
 ```
+
+# Question 1: Systematic AI Fund
+
+For this question I put my fund’s performance into perspective by
+comparing it to the benchmark (Capped SWIX) as well as some industry
+peers (ASISA active managers).
+
+I will use a rolling return approach to compare my AI fund’s returns to
+the relevant funds.
+
+## Import Data
 
 ``` r
 ASISA <- read_rds("data/ASISA.rds")
@@ -54,8 +64,10 @@ BM <- read_rds("data/Capped_SWIX.rds")
 AI_Fund <- read_rds("data/AI_Max_Fund.rds")
 ```
 
+-   Find average returns for each active fund
+
 ``` r
-# Find avergae returns for each active fund
+# Wrangle returns for active funds (i.e., get only one return entry for each month end)
 
 ASISA_clean <- ASISA %>% 
     
@@ -66,8 +78,6 @@ ASISA_clean <- ASISA %>%
     filter(!is.na(Returns)) %>% 
     
     group_by(date) %>% 
-    
-    #na.omit(Returns) %>% 
     
     mutate(Returns = mean(Returns)) %>% 
     
@@ -125,11 +135,11 @@ combine_funds_plot <- combine_funds %>%
     
     geom_line(aes(date, CP, color = Tickers)) + 
     
-labs(title = "Illustration of Cumulative Returns of various Indices with differing start dates",
+labs(title = "Cumulative Returns of Funds",
      
-    subtitle = "", caption = "Note:\nDistortions emerge as starting dates differ.") +
+    subtitle = "", caption = "Note:\nStarting dates differ") +
     
-    theme_fmx(title.size = ggpts(30), subtitle.size = ggpts(5), 
+    theme_fmx(title.size = ggpts(40), subtitle.size = ggpts(5), 
               
         caption.size = ggpts(25), CustomCaption = T)
 
@@ -148,6 +158,11 @@ ggsave(filename = glue::glue("C:/Users/Cabous/OneDrive/Desktop/22017542_Exam/Que
        plot = combine_funds_plot, device = "png", width = 12, height = 6)
 ```
 
+From the graph it is clear that active managers struggle to outperform
+the benchmark, as well as my AI fund. Let’s go further….
+
+-   Log cumulative return
+
 ``` r
 # Log cumulative plot:
 
@@ -158,6 +173,12 @@ combine_funds_plot_log <- combine_funds_plot +
     labs(title = paste0(combine_funds_plot$labels$title, 
     "\nLog Scaled"), y = "Log Scaled Cumulative Returns")
 
+combine_funds_plot_log
+```
+
+![](README_files/figure-markdown_github/unnamed-chunk-5-1.png)
+
+``` r
 # Save
 
 ggsave(filename = glue::glue("C:/Users/Cabous/OneDrive/Desktop/22017542_Exam/Questions/Question1/Tex/plot_2.png"), 
@@ -165,15 +186,17 @@ ggsave(filename = glue::glue("C:/Users/Cabous/OneDrive/Desktop/22017542_Exam/Que
        plot = combine_funds_plot_log, device = "png", width = 12, height = 6)
 ```
 
+-   Let’s compare the returns on a rolling 3 year annualized basis
+
 ``` r
 # Rolling SD annualized :
+
 RollSD_combine_funds <- combine_funds %>% 
     
     group_by(Tickers) %>% 
 
     mutate(RollRets = RcppRoll::roll_prod(1 + Returns, 36, fill = NA, align = "right")^(12/36) - 1) %>% 
-# Note this cool trick: it removes dates that have no
-# RollRets at all.
+
     group_by(date) %>% 
     
     filter(any(!is.na(RollRets))) %>% 
@@ -187,12 +210,11 @@ RollSD_gg <- RollSD_combine_funds %>%
     
     geom_line(aes(date, RollRets, color = Tickers), alpha = 0.7, size = 1.25) + 
     
-    labs(title = "Illustration of Rolling 3 Year 
-         Annualized Returns of various Indices with differing start dates",
+    labs(title = "Rolling 3 Year Annualized Returns for the different Funds",
          
          subtitle = "", x = "", y = "Rolling 3 year Returns (Ann.)", 
          
-         caption = "Note:\nDistortions are not evident now.") + 
+         caption = "Note:\nDistortions are not evident now") + 
     
     theme_fmx(title.size = ggpts(30), 
               subtitle.size = ggpts(5), caption.size = ggpts(25), CustomCaption = T) + 
@@ -218,6 +240,8 @@ ggsave(filename = glue::glue("C:/Users/Cabous/OneDrive/Desktop/22017542_Exam/Que
 ```
 
     ## Warning: Removed 70 rows containing missing values (`geom_line()`).
+
+Finally, I will calculate the rolling annualized SD of my series
 
 ``` r
 # log returns
@@ -254,8 +278,7 @@ dlog_fund_ret_plot <- dlog_fund_ret %>%
     
     geom_line(aes(date, RollSD, color = Tickers), alpha = 0.7, size = 1.25) + 
     
-    labs(title = "Illustration of Rolling 3 Year 
-         Annualized SD of various Indices with differing start dates", 
+    labs(title = "Rolling 3 Year Annualized SD for the different Funds", 
          
     subtitle = "", x = "", y = "Rolling 3 year Returns (Ann.)", 
     
@@ -279,7 +302,15 @@ ggsave(filename = glue::glue("C:/Users/Cabous/OneDrive/Desktop/22017542_Exam/Que
        plot = dlog_fund_ret_plot, device = "png", width = 12, height = 6)
 ```
 
-# Question 1: Yield Spreads
+# Question 2: Yield Spreads
+
+Economists claim that the current yield spreads in the local mid to
+longer dated bond yields have since 2020 been the highest in decades. As
+such, I will conduct a brief analysis to investigate this claim.
+
+A yield spread is simply the difference between the rate of return on
+different debt instruments which have varying maturities. I will start
+by importing the data and plotting the different yield spreds for SA.
 
 ## Import Data
 
@@ -299,7 +330,7 @@ ZA_Inflation <- read_rds("data/ZA_Infl.rds")
 IV <- read_rds("data/IV.rds")
 ```
 
-## Compare spreads
+## Calculate and compare spreads
 
 ``` r
 pacman::p_load(fmxdat)
@@ -320,12 +351,29 @@ SA_Spreads <- SA_bonds %>%
 
     ungroup() %>% 
     
-    pivot_longer(c("10Yr2Yr", "10Yr3M", "2Yr3M"), names_to = "Spreads", values_to = "Rates") %>% 
+    pivot_longer(c("10Yr2Yr", "10Yr3M", "2Yr3M"), 
+                 names_to = "Spreads", values_to = "Rates") %>% 
     
     filter(date >= as.Date("2000/01/01"))
+
+head(SA_Spreads, 10)
 ```
 
-# Plot the spreads
+    ## # A tibble: 10 x 6
+    ##    date       SA_3M ZA_10Yr ZA_2Yr Spreads Rates
+    ##    <date>     <dbl>   <dbl>  <dbl> <chr>   <dbl>
+    ##  1 2000-01-03  11.2    13.7   12.3 10Yr2Yr  1.37
+    ##  2 2000-01-03  11.2    13.7   12.3 10Yr3M   2.43
+    ##  3 2000-01-03  11.2    13.7   12.3 2Yr3M    1.06
+    ##  4 2000-01-04  11.2    13.8   12.3 10Yr2Yr  1.44
+    ##  5 2000-01-04  11.2    13.8   12.3 10Yr3M   2.61
+    ##  6 2000-01-04  11.2    13.8   12.3 2Yr3M    1.17
+    ##  7 2000-01-05  11.1    14.0   12.4 10Yr2Yr  1.59
+    ##  8 2000-01-05  11.1    14.0   12.4 10Yr3M   2.89
+    ##  9 2000-01-05  11.1    14.0   12.4 2Yr3M    1.30
+    ## 10 2000-01-06  11.0    13.9   12.3 10Yr2Yr  1.64
+
+## Plot the spreads
 
 ``` r
 SA_Spread_plot <- SA_Spreads %>% 
@@ -350,15 +398,18 @@ fmxdat::finplot(SA_Spread_plot, x.date.type = "%Y%m", x.vert = TRUE)
 
 ![](README_files/figure-markdown_github/unnamed-chunk-11-1.png)
 
-I can confirm that bond yields have since 2020 been the highest in two
-decades.
+I can confirm that the current yield spreads in mid to longer dated
+bonds are the highest they have been in two decades. However, the yield
+spread between the 2 year and 3 month (short-term) local bonds have
+remained relatively stable.
+
+Next I will try to analyse the relationship between the SA 10 Year
+Break-even inflation estimate, SA inflation, and the local long yield
+spread.
 
 ``` r
-library(dplyr)
-library(tidyr)
-pacman::p_load(lubridate)
+# Lets combine ZA and BE Monthly inflation
 
-# Lets combine ZA and BE inflation (Monthly)
 # Note: BE starting date (2012-05-07)
 
 BE_Inflation_clean <- BE_Inflation %>% 
@@ -401,7 +452,9 @@ ZA_Inflation_clean <- ZA_Inflation %>%
         select(-date) %>% 
             
         ungroup() 
-        
+
+# Combine clean data 
+
 ZA_BE_Inflation <- BE_Inflation_clean %>% 
     
     inner_join(ZA_Inflation_clean) %>% 
@@ -462,14 +515,19 @@ fmxdat::finplot(Spread_Infl_plot, x.date.type = "%Y%m", x.vert = TRUE)
 
 ![](README_files/figure-markdown_github/unnamed-chunk-12-1.png)
 
+From the graph it appears that there is an inverse relationship between
+the break even inflation estimate and local longer dated bond yields.
+Finally, I will compare the the local spread to international spreads. I
+will specifically look at Germany, Thailand and the US.
+
 # Compare to International Spreads
 
 ``` r
 #bonds_10y %>% pull(Name) %>% unique()
 
-Names_2yr <- c("Philippines_2yr", "Germany_2yr", "US_2yr")
+Names_2yr <- c("Thailand_2yr", "Germany_2yr", "US_2yr")
 
-Names_10yr <- c("Philippines_10Yr", "Germany_10Yr", "US_10Yr")
+Names_10yr <- c("Thailand_10Yr", "Germany_10Yr", "US_10Yr")
 
 
 bonds_2y10y_combine <-  bonds_2y %>% 
@@ -509,7 +567,7 @@ bonds_2y10y_spread <- bonds_2y10y_combine %>%
     group_by(date) %>% 
     
     mutate(US_10Yr2Yr = US_10Yr - US_2yr, 
-           PHILL_10Yr2Yr = Philippines_10Yr - Philippines_2yr,
+           Thai_10Yr2Yr = Thailand_10Yr - Thailand_2yr,
            Germany_10Yr2Yr = Germany_10Yr - Germany_2yr) %>% 
     
     ungroup() %>% 
@@ -524,10 +582,10 @@ bonds_2y10y_spread <- bonds_2y10y_combine %>%
     
     filter(date >= as.Date("2000/01/01"))) %>% 
     
-    select(date, SA_10Yr2Yr, US_10Yr2Yr,PHILL_10Yr2Yr, Germany_10Yr2Yr) %>% 
+    select(date, SA_10Yr2Yr, US_10Yr2Yr,Thai_10Yr2Yr, Germany_10Yr2Yr) %>% 
     
     pivot_longer(c("US_10Yr2Yr", 
-                   #"PHILL_10Yr2Yr", 
+                   "Thai_10Yr2Yr", 
                    "Germany_10Yr2Yr",
                    "SA_10Yr2Yr"), 
                  names_to = "Spreads", values_to = "Rates") 
@@ -547,8 +605,8 @@ compare_spread_plot <- bonds_2y10y_spread %>%
     geom_line(aes(date, Rates, colour = Spreads), alpha = 0.8) +
     
     labs(title = "Relative Long Term Spreads", 
-         y = "Spreads (Yields)", x ="", 
-         subtitle = "Includes US, Philippines, Germany and SA") +
+         y = "Yield Spreads", x ="", 
+         subtitle = "Includes US, Thailand, Germany and SA") +
     
     fmxdat::theme_fmx(title.size = ggpts(30), subtitle.size = ggpts(22), legend.size = ggpts(20)) + 
     
@@ -557,9 +615,15 @@ compare_spread_plot <- bonds_2y10y_spread %>%
 fmxdat::finplot(compare_spread_plot, x.date.type = "%Y%m", x.vert = TRUE)
 ```
 
+    ## Warning: Removed 14 rows containing missing values (`geom_line()`).
+
 ![](README_files/figure-markdown_github/unnamed-chunk-13-1.png)
 
-# Question 2: Portfolio Construction
+The graph strongly supports the notion that the local yield spread is
+very high. This in part can be due to strong foreign demand for new
+South African bonds since 2019.
+
+# Question 3: Portfolio Construction
 
 ## Import Data
 
