@@ -3,46 +3,24 @@
 # Remove comments and add values where applicable.
 # The descriptions below should be self-explanatory
 
-title: "Helping You Write Academic Papers in R using Texevier"
+#title: "Question 2: Yield Spread"
 #subtitle: "This will appear as Right Header"
 
 documentclass: "elsarticle"
 
 # --------- Thesis title (Optional - set to FALSE by default).
 # You can move the details below around as you please.
-Thesis_FP: FALSE
-# Entry1: "An unbelievable study with a title spanning multiple lines."
-# Entry2: "\\textbf{Nico Katzke}" # textbf for bold
-# Entry3: "A thesis submitted toward the degree of Doctor of Philosophy"
-# Uni_Logo: Tex/Logo.png # Place a logo in the indicated location (from your root, e.g. defaults to ~/Tex/Logo.png) and uncomment this line. Leave uncommented for no image
+Thesis_FP: yes
+Entry1: Question 7 - Portfolio Construction
+Entry2: \textbf{Carel Olivier} # textbf for bold
+Entry3: 22017542
+Uni_Logo: Tex/port.jpg # Place a logo in the indicated location (from your root, e.g. defaults to ~/Tex/Logo.png) and uncomment this line. Leave uncommented for no image
 # Logo_width: 0.3 # If using a logo - use this to set width (size) of image
-# Entry4: "Under the supervision of: \\vfill Prof. Joe Smith and Dr. Frank Smith"
-# Entry5: "Stellenbosch University"
+#Entry4: 
+#Entry5: Stellenbosch University
 # Entry6: April 2020
 # Entry7:
 # Entry8:
-
-# --------- Front Page
-# Comment: ----- Follow this pattern for up to 5 authors
-AddTitle: TRUE # Use FALSE when submitting to peer reviewed platform. This will remove author names.
-Author1: "Nico Katzke^[__Contributions:__  \\newline _The authors would like to thank no institution for money donated to this project. Thank you sincerely._]"  # First Author - note the thanks message displayed as an italic footnote of first page.
-Ref1: "Prescient Securities, Cape Town, South Africa" # First Author's Affiliation
-Email1: "nfkatzke\\@gmail.com" # First Author's Email address
-
-Author2: "John Smith"
-Ref2: "Some other Institution, Cape Town, South Africa"
-Email2: "John\\@gmail.com"
-CommonAffiliation_12: TRUE # If Author 1 and 2 have a common affiliation. Works with _13, _23, etc.
-
-Author3: "John Doe"
-Email3: "Joe\\@gmail.com"
-
-CorrespAuthor_1: TRUE  # If corresponding author is author 3, e.g., use CorrespAuthor_3: TRUE
-
-# Comment out below to remove both. JEL Codes only given if keywords also given.
-keywords: "Multivariate GARCH \\sep Kalman Filter \\sep Copula" # Use \\sep to separate
-JELCodes: "L250 \\sep L100"
-
 # ----- Manage headers and footers:
 #BottomLFooter: $Title$
 #BottomCFooter:
@@ -92,7 +70,7 @@ output:
     fig_width: 3.5 # Adjust default figure sizes. This can also be done in the chunks of the text.
     fig_height: 3.5
 abstract: |
-  Abstract to be written here. The abstract should not be too long and should provide the reader with a good understanding what you are writing about. Academic papers are not like novels where you keep the reader in suspense. To be effective in getting others to read your paper, be as open and concise about your findings here as possible. Ideally, upon reading your abstract, the reader should feel he / she must read your paper in entirety.
+  
 ---
 
 <!-- First: Set your default preferences for chunk options: -->
@@ -114,8 +92,24 @@ list.files('C:/Users/Cabous/OneDrive/Desktop/22017542_Exam/code/', full.names = 
 
 ```
 
-# Question 7
-## # Load in Data
+# Short Introduction
+
+For this question I will construct a Global Balanced Index Fund portfolio using a mix of traded global indexes.
+
+To achieve a balanced index fund I will take the following considerations:
+
+* A look-back of less than 3 years
+
+* Disregard any assets with less than 3 years’ returns data
+
+* Apply Quarterly Rebalancing
+
+* Limit exposure to Bonds and credit instruments at 25%
+
+* Limit exposure to Equities at 60%
+
+* Limit single asset exposure at 40%
+
 
 ```{r}
 
@@ -311,18 +305,5 @@ head(Opt_roll_wgt, 10)
 
 
 
-\newpage
 
-# References {-}
-
-<div id="refs"></div>
-
-
-# Appendix {-}
-
-## Appendix A {-}
-
-Some appendix information here
-
-## Appendix B {-}
 

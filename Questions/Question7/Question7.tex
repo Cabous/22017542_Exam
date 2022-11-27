@@ -167,59 +167,54 @@
 
 
 
+%titlepage
+\thispagestyle{empty}
+\begin{center}
+\begin{minipage}{0.75\linewidth}
+    \centering
+%Entry1
+    {\uppercase{\huge Question 7 - Portfolio Construction\par}}
+    \vspace{2cm}
+%Author's name
+    {\LARGE \textbf{Carel Olivier}\par}
+    \vspace{1cm}
+%University logo
+\begin{center}
+    \includegraphics[width=\linewidth]{Tex/port.jpg}
+\end{center}
+\vspace{1cm}
+%Supervisor's Details
+\begin{center}
+    {\Large 22017542\par}
+    \vspace{1cm}
+%Degree
+    {\large \par}
+    \vspace{1cm}
+%Institution
+    {\large \par}
+    \vspace{1cm}
+%Date
+    {\large }
+%More
+    {\normalsize }
+%More
+    {\normalsize }
+\end{center}
+\end{minipage}
+\end{center}
+\clearpage
+
+
 \begin{frontmatter}  %
 
-\title{Helping You Write Academic Papers in R using Texevier}
+\title{}
 
 % Set to FALSE if wanting to remove title (for submission)
 
 
-
-
-\author[Add1]{Nico Katzke\footnote{\textbf{Contributions:}
-  \newline \emph{The authors would like to thank no institution for
-  money donated to this project. Thank you sincerely.}}}
-\ead{nfkatzke@gmail.com}
-
-\author[Add1,Add2]{John Smith}
-\ead{John@gmail.com}
-
-\author[Add1,Add2]{John Doe}
-\ead{Joe@gmail.com}
-
-
-
-\address[Add1]{Prescient Securities, Cape Town, South Africa}
-\address[Add2]{Some other Institution, Cape Town, South Africa}
-
-\cortext[cor]{Corresponding author: Nico Katzke\footnote{\textbf{Contributions:}
-  \newline \emph{The authors would like to thank no institution for
-  money donated to this project. Thank you sincerely.}}}
-
-\begin{abstract}
-\small{
-Abstract to be written here. The abstract should not be too long and
-should provide the reader with a good understanding what you are writing
-about. Academic papers are not like novels where you keep the reader in
-suspense. To be effective in getting others to read your paper, be as
-open and concise about your findings here as possible. Ideally, upon
-reading your abstract, the reader should feel he / she must read your
-paper in entirety.
-}
-\end{abstract}
-
 \vspace{1cm}
 
 
-\begin{keyword}
-\footnotesize{
-Multivariate GARCH \sep Kalman Filter \sep Copula \\
-\vspace{0.3cm}
-}
-\footnotesize{
-\textit{JEL classification} L250 \sep L100
-}
-\end{keyword}
 
 
 
@@ -250,11 +245,29 @@ Multivariate GARCH \sep Kalman Filter \sep Copula \\
 
 
 
-\hypertarget{question-7}{%
-\section{Question 7}\label{question-7}}
+\hypertarget{short-introduction}{%
+\section{Short Introduction}\label{short-introduction}}
 
-\hypertarget{load-in-data}{%
-\subsection{\# Load in Data}\label{load-in-data}}
+For this question I will construct a Global Balanced Index Fund
+portfolio using a mix of traded global indexes.
+
+To achieve a balanced index fund I will take the following
+considerations:
+
+\begin{itemize}
+\item
+  A look-back of less than 3 years
+\item
+  Disregard any assets with less than 3 years' returns data
+\item
+  Apply Quarterly Rebalancing
+\item
+  Limit exposure to Bonds and credit instruments at 25\%
+\item
+  Limit exposure to Equities at 60\%
+\item
+  Limit single asset exposure at 40\%
+\end{itemize}
 
 \begin{verbatim}
 ## # A tibble: 10 x 7
@@ -272,30 +285,6 @@ Multivariate GARCH \sep Kalman Filter \sep Copula \\
 ## 10 MSCI_ACWI                   0.400  0.0100   0.0100 0.0769 2018-06-29       12
 ## # ... with abbreviated variable name 1: Look_Back_Period
 \end{verbatim}
-
-\newpage
-
-\hypertarget{references}{%
-\section*{References}\label{references}}
-\addcontentsline{toc}{section}{References}
-
-\hypertarget{refs}{}
-\begin{CSLReferences}{0}{0}
-\end{CSLReferences}
-
-\hypertarget{appendix}{%
-\section*{Appendix}\label{appendix}}
-\addcontentsline{toc}{section}{Appendix}
-
-\hypertarget{appendix-a}{%
-\subsection*{Appendix A}\label{appendix-a}}
-\addcontentsline{toc}{subsection}{Appendix A}
-
-Some appendix information here
-
-\hypertarget{appendix-b}{%
-\subsection*{Appendix B}\label{appendix-b}}
-\addcontentsline{toc}{subsection}{Appendix B}
 
 \bibliography{Tex/ref}
 
