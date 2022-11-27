@@ -3,20 +3,20 @@
 # Remove comments and add values where applicable.
 # The descriptions below should be self-explanatory
 
-title: "Helping You Write Academic Papers in R using Texevier"
+#title: "Question 2: Yield Spread"
 #subtitle: "This will appear as Right Header"
 
 documentclass: "elsarticle"
 
 # --------- Thesis title (Optional - set to FALSE by default).
 # You can move the details below around as you please.
-Thesis_FP: FALSE
-# Entry1: "An unbelievable study with a title spanning multiple lines."
-# Entry2: "\\textbf{Nico Katzke}" # textbf for bold
-# Entry3: "A thesis submitted toward the degree of Doctor of Philosophy"
-# Uni_Logo: Tex/Logo.png # Place a logo in the indicated location (from your root, e.g. defaults to ~/Tex/Logo.png) and uncomment this line. Leave uncommented for no image
+Thesis_FP: yes
+Entry1: Question 3 -  Portfolio Construction
+Entry2: \textbf{Carel Olivier} # textbf for bold
+Entry3: 22017542
+#Uni_Logo: Tex/yield curve.png # Place a logo in the indicated location (from your root, e.g. defaults to ~/Tex/Logo.png) and uncomment this line. Leave uncommented for no image
 # Logo_width: 0.3 # If using a logo - use this to set width (size) of image
-# Entry4: "Under the supervision of: \\vfill Prof. Joe Smith and Dr. Frank Smith"
+#Entry4: "Under the supervision of: \\vfill Prof. Joe Smith and Dr. Frank Smith"
 # Entry5: "Stellenbosch University"
 # Entry6: April 2020
 # Entry7:
@@ -24,18 +24,14 @@ Thesis_FP: FALSE
 
 # --------- Front Page
 # Comment: ----- Follow this pattern for up to 5 authors
-AddTitle: TRUE # Use FALSE when submitting to peer reviewed platform. This will remove author names.
-Author1: "Nico Katzke^[__Contributions:__  \\newline _The authors would like to thank no institution for money donated to this project. Thank you sincerely._]"  # First Author - note the thanks message displayed as an italic footnote of first page.
-Ref1: "Prescient Securities, Cape Town, South Africa" # First Author's Affiliation
-Email1: "nfkatzke\\@gmail.com" # First Author's Email address
+#AddTitle: TRUE # Use FALSE when submitting to peer reviewed platform. This will remove author names.
+#Author1: "Carel Olivier"  # First Author - note the thanks message displayed as an italic footnote of first page.
+#Ref1: "22017542" # First Author's Affiliation
+#Email1: "nfkatzke\\@gmail.com" # First Author's Email address
 
-Author2: "John Smith"
-Ref2: "Some other Institution, Cape Town, South Africa"
-Email2: "John\\@gmail.com"
-CommonAffiliation_12: TRUE # If Author 1 and 2 have a common affiliation. Works with _13, _23, etc.
-
-Author3: "John Doe"
-Email3: "Joe\\@gmail.com"
+# Comment out below to remove both. JEL Codes only given if keywords also given.
+#keywords: "Multivariate GARCH \\sep Kalman Filter \\sep Copula" # Use \\sep to separate
+#JELCodes: "L250 \\sep L100"
 
 CorrespAuthor_1: TRUE  # If corresponding author is author 3, e.g., use CorrespAuthor_3: TRUE
 
@@ -92,7 +88,7 @@ output:
     fig_width: 3.5 # Adjust default figure sizes. This can also be done in the chunks of the text.
     fig_height: 3.5
 abstract: |
-  Abstract to be written here. The abstract should not be too long and should provide the reader with a good understanding what you are writing about. Academic papers are not like novels where you keep the reader in suspense. To be effective in getting others to read your paper, be as open and concise about your findings here as possible. Ideally, upon reading your abstract, the reader should feel he / she must read your paper in entirety.
+
 ---
 
 <!-- First: Set your default preferences for chunk options: -->
@@ -117,7 +113,9 @@ list.files('C:/Users/Cabous/OneDrive/Desktop/22017542_Exam/Questions/Question3/c
 ```
 
 
-# Load data
+# Short Introduction
+
+Firstly I will compare the SWIX and ALSI by looking at the performance of different size indexes (large and small caps). I did not include Mid Caps since the graphs did not make sense. 
 
 ```{r}
 
@@ -287,7 +285,7 @@ Portf_Rets_L %>%
 
 ```
 
-# Mid-Caps
+# Small-Caps
 
 ```{r}
 # Mid-Caps
@@ -440,8 +438,11 @@ Portf_Rets_M %>%
 
 ```
 
+\newpage
 
 # Capped Portfolio 
+
+To answer the JSE’s question on applying capping to the indexes I will be looking at the impact different capping levels would have had on both the SWIX and ALSI (6% and 10%).
 
 ```{r}
 # Construct Capped Portfolio and Determine Performance for ALSI
@@ -551,67 +552,112 @@ rename(SWIX = portfolio.returns)
 capped_indices <- left_join(ALSI_capped, SWIX_capped, by = "date") %>% 
     
     pivot_longer(c("ALSI", "SWIX"), names_to = "Meth", values_to = "returns")
+```
 
-# Calculate Uncapped Return for ALSI
-ALSI_wts <- T40 %>% 
+
+```{r}
+
+# Apply Proportional_Cap_Foo to ALSI to get capped return for cap of 6%
+
+Capped_df_6p <- reb_ALSI %>% 
     
-    filter(date %in% RebDays$date) %>%
+    group_split(RebalanceTime) %>% 
     
-    mutate(RebalanceTime = format(date, "%Y%B")) %>% 
+    map_df(~Proportional_Cap_Foo(., W_Cap = 0.06) ) %>% 
     
-    rename(weight = J200) %>% 
-    
-    mutate(weight = coalesce(weight , 0)) %>%
-    
-    select(date, Tickers, Return, weight, RebalanceTime) %>% 
+    select(-RebalanceTime)
+ 
+
+ALSI_wts_6p <- Capped_df_6p %>% 
     
     tbl_xts(cols_to_xts = weight, spread_by = Tickers)
 
 
-ALSI_wts[is.na(ALSI_wts)] <- 0
+ALSI_rts_6p <- T40 %>% 
+    
+    filter(Tickers %in% unique(Capped_df_6p$Tickers)) %>% 
+    
+    tbl_xts(cols_to_xts = Return, spread_by = Tickers)
 
-ALSI_rts[is.na(ALSI_rts)] <- 0
 
-ALSI_capped <- rmsfuns::Safe_Return.portfolio(R = ALSI_rts, weights = ALSI_wts, 
+ALSI_wts_6p[is.na(ALSI_wts_6p)] <- 0
+
+ALSI_rts_6p[is.na(ALSI_rts_6p)] <- 0
+
+
+ALSI_capped_6p <- rmsfuns::Safe_Return.portfolio(R = ALSI_rts_6p, weights = ALSI_wts_6p, 
     lag_weights = T) %>% 
     
     xts_tbl() %>% 
     
-rename(ALSI = portfolio.returns)
+    rename(ALSI = portfolio.returns)
 
-# Calculate Uncapped Return for SWIX
+# Apply Proportional_Cap_Foo to SwIX to get capped return for cap of 10%
+
+Capped_df_10p <- reb_SWIX %>% 
+    
+    group_split(RebalanceTime) %>% 
+    
+    map_df(~Proportional_Cap_Foo(., W_Cap = 0.1) ) %>% 
+    
+    select(-RebalanceTime)
  
-SWIX_wts <- T40 %>% 
-    
-    filter(date %in% RebDays$date) %>% 
-    
-    mutate(RebalanceTime = format(date, "%Y%B")) %>% 
-    
-    rename(weight = J400) %>% 
-    
-    mutate(weight = coalesce(weight , 0)) %>% 
-    
-    select(date, Tickers, Return, weight, RebalanceTime) %>% 
+
+SWIX_wts_10p <- Capped_df_10p %>% 
     
     tbl_xts(cols_to_xts = weight, spread_by = Tickers)
 
 
-SWIX_wts[is.na(SWIX_wts)] <- 0
+SWIX_rts_10p <- T40 %>% 
+    
+    filter(Tickers %in% unique(Capped_df_10p$Tickers)) %>%
+    
+    tbl_xts(cols_to_xts = Return, spread_by = Tickers)
 
-SWIX_rts[is.na(SWIX_rts)] <- 0
 
-SWIX_capped <- rmsfuns::Safe_Return.portfolio(R = SWIX_rts, weights = SWIX_wts, 
+SWIX_wts_10p[is.na(SWIX_wts_10p)] <- 0
+
+SWIX_rts_10p[is.na(SWIX_rts_10p)] <- 0
+
+
+SWIX_capped_10p <- rmsfuns::Safe_Return.portfolio(R = SWIX_rts_10p, weights = SWIX_wts_10p, 
     lag_weights = T) %>% 
     
     xts_tbl() %>% 
     
 rename(SWIX = portfolio.returns)
 
-# Combine and Plot
 
-ALSI_SWIX <- left_join(ALSI_capped, SWIX_capped, by = "date") %>% 
+# Combine and Plot Performance
+
+capped_indices_6p <- left_join(ALSI_capped_6p, SWIX_capped_10p, by = "date") %>% 
+    
+    pivot_longer(c("ALSI", "SWIX"), names_to = "Meth", values_to = "returns")
+
+
+
+ALSI_SWIX_6p <- left_join(ALSI_capped_6p, SWIX_capped_10p, by = "date") %>% 
     
     pivot_longer(c("ALSI", "SWIX"), names_to = "Meth", values_to = "Returns")
+
+
+q2_p3_6p <- capped_indices_6p %>% 
+    
+    group_by(Meth) %>%
+    
+    mutate(Idx = cumprod(1 + returns)) %>% 
+    
+ggplot() + 
+    
+geom_line(aes(date, Idx, colour = Meth), alpha = 0.8) + 
+    
+labs(subtitle = "ALSI capped at 6% and SWIX at 10%", 
+    x = "", y = "Cumulative Return") +
+    
+    fmx_cols() + 
+    
+fmxdat::theme_fmx(subtitle.size = ggpts(20))
+
 
 q2_p3 <- capped_indices %>% 
     
@@ -630,54 +676,8 @@ labs(subtitle = "ALSI capped at 10% and SWIX at 6%",
     
 fmxdat::theme_fmx(subtitle.size = ggpts(20))
 
-
-q2_p4 <- ALSI_SWIX %>% 
-    
-    group_by(Meth) %>%
-    
-    mutate(Idx = cumprod(1 + Returns)) %>% 
-    
-ggplot() + 
-    
-geom_line(aes(date, Idx, colour = Meth), alpha = 0.8) + 
-    
-labs(subtitle = "Uncapped Index Calculation for ALSI and SWIX", 
-    x = "", y = "Cumulative Return") + 
-    
-    fmx_cols() +
-    
-fmxdat::theme_fmx(subtitle.size = ggpts(20))
-
-plot_grid(finplot(q2_p3), finplot(q2_p4), labels = list(title = "Comparing Capped and Uncapped returns of ALSI and SWIX"), label_size = ggpts(30), align = "h")
-
-
-
-
-
+plot_grid(finplot(q2_p3), finplot(q2_p3_6p), labels = list(title = "Comparing Capped returns of ALSI and SWIX"), label_size = ggpts(30), align = "h")
 ```
 
 
-
-
-
-
-
-
-
-
-
-\newpage
-
-# References {-}
-
-<div id="refs"></div>
-
-
-# Appendix {-}
-
-## Appendix A {-}
-
-Some appendix information here
-
-## Appendix B {-}
 
