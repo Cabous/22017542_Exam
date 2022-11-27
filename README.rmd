@@ -27,7 +27,228 @@ list.files('C:/Users/Cabous/OneDrive/Desktop/22017542_Exam/code/', full.names = 
 
 ```
 
+
+```{r}
+
+ASISA <- read_rds("data/ASISA.rds")
+
+BM <- read_rds("data/Capped_SWIX.rds")
+
+AI_Fund <- read_rds("data/AI_Max_Fund.rds")
+
+```
+
+
+```{r}
+# Find avergae returns for each active fund
+
+ASISA_clean <- ASISA %>% 
+    
+    arrange(date) %>%
+    
+    rename(Tickers = Name) %>% 
+    
+    filter(!is.na(Returns)) %>% 
+    
+    group_by(date) %>% 
+    
+    #na.omit(Returns) %>% 
+    
+    mutate(Returns = mean(Returns)) %>% 
+    
+    ungroup() %>% 
+    
+    mutate(Tickers = "Active_Fund") %>% 
+    
+    group_by(date) %>% 
+    
+    unique()
+
+
+head(ASISA_clean, 10)
+ 
+```
+
+```{r}
+# Bind all funds
+
+combine_funds <- ASISA_clean %>% 
+    
+    rbind(BM, AI_Fund)
+
+# Calculating Rolling Returns
+
+combine_funds_plot <- combine_funds %>% 
+    
+    arrange(date) %>% 
+    
+    group_by(Tickers) %>% 
+    
+# Set NA Rets to zero to make cumprod work:
+    
+    mutate(Returns = coalesce(Returns, 0)) %>% 
+    
+    mutate(CP = cumprod(1 + Returns)) %>% 
+    
+    ungroup() %>% 
+    
+    ggplot() + 
+    
+    geom_line(aes(date, CP, color = Tickers)) + 
+    
+labs(title = "Illustration of Cumulative Returns of various Indices with differing start dates",
+     
+    subtitle = "", caption = "Note:\nDistortions emerge as starting dates differ.") +
+    
+    theme_fmx(title.size = ggpts(30), subtitle.size = ggpts(5), 
+              
+        caption.size = ggpts(25), CustomCaption = T)
+
+# Level plot
+
+combine_funds_plot
+
+# Save
+
+ggsave(filename = glue::glue("C:/Users/Cabous/OneDrive/Desktop/22017542_Exam/Questions/Question1/Tex/plot_1.png"), 
+       
+       plot = combine_funds_plot, device = "png", width = 12, height = 6)
+```
+
+
+```{r}
+# Log cumulative plot:
+
+combine_funds_plot_log <- combine_funds_plot + 
+    
+    coord_trans(y = "log10") +
+    
+    labs(title = paste0(combine_funds_plot$labels$title, 
+    "\nLog Scaled"), y = "Log Scaled Cumulative Returns")
+
+# Save
+
+ggsave(filename = glue::glue("C:/Users/Cabous/OneDrive/Desktop/22017542_Exam/Questions/Question1/Tex/plot_2.png"), 
+       
+       plot = combine_funds_plot_log, device = "png", width = 12, height = 6)
+```
+
+
+```{r}
+
+# Rolling SD annualized :
+RollSD_combine_funds <- combine_funds %>% 
+    
+    group_by(Tickers) %>% 
+
+    mutate(RollRets = RcppRoll::roll_prod(1 + Returns, 36, fill = NA, align = "right")^(12/36) - 1) %>% 
+# Note this cool trick: it removes dates that have no
+# RollRets at all.
+    group_by(date) %>% 
+    
+    filter(any(!is.na(RollRets))) %>% 
+    
+    ungroup()
+
+
+RollSD_gg <- RollSD_combine_funds %>% 
+    
+    ggplot() + 
+    
+    geom_line(aes(date, RollRets, color = Tickers), alpha = 0.7, size = 1.25) + 
+    
+    labs(title = "Illustration of Rolling 3 Year 
+         Annualized Returns of various Indices with differing start dates",
+         
+         subtitle = "", x = "", y = "Rolling 3 year Returns (Ann.)", 
+         
+         caption = "Note:\nDistortions are not evident now.") + 
+    
+    theme_fmx(title.size = ggpts(30), 
+              subtitle.size = ggpts(5), caption.size = ggpts(25), CustomCaption = T) + 
+    fmx_cols()
+
+finplot(RollSD_gg, x.date.dist = "1 year", x.date.type = "%Y", x.vert = T, 
+    y.pct = T, y.pct_acc = 1)
+
+```
+
+
+```{r}
+
+ggsave(filename = glue::glue("C:/Users/Cabous/OneDrive/Desktop/22017542_Exam/Questions/Question1/Tex/plot_3.png"), 
+       
+       plot = RollSD_gg, device = "png", width = 12, height = 6)
+
+```
+
+```{r}
+
+# log returns
+
+library(PerformanceAnalytics)
+library(tbl2xts)
+
+dlog_fund_ret <- combine_funds %>% 
+    
+    mutate(YM = format(date, "%Y%B")) %>% 
+    
+    arrange(date) %>% 
+    
+    group_by(Tickers, YM) %>% 
+    
+    filter(date == last(date)) %>% 
+    
+    group_by(Tickers) %>% 
+    
+    mutate(dlogret = log(1 + Returns)) %>% 
+    
+    select(date, Tickers, dlogret) %>% 
+    
+# Rolling SD annualized calc now:
+    
+    mutate(RollSD = RcppRoll::roll_sd(1 + dlogret, 36, fill = NA, align = "right") * sqrt(12)) %>%
+    
+    filter(!is.na(RollSD))
+# plot
+
+dlog_fund_ret_plot <- dlog_fund_ret %>% 
+    
+    ggplot() + 
+    
+    geom_line(aes(date, RollSD, color = Tickers), alpha = 0.7, size = 1.25) + 
+    
+    labs(title = "Illustration of Rolling 3 Year 
+         Annualized SD of various Indices with differing start dates", 
+         
+    subtitle = "", x = "", y = "Rolling 3 year Returns (Ann.)", 
+    
+    caption = "Note:\nDistortions are not evident now.") + 
+    
+    theme_fmx(title.size = ggpts(30), 
+              
+    subtitle.size = ggpts(5), caption.size = ggpts(25), CustomCaption = T) + 
+    
+    fmx_cols()
+
+finplot(dlog_fund_ret_plot, x.date.dist = "1 year", x.date.type = "%Y", x.vert = T, 
+    y.pct = T, y.pct_acc = 1)
+
+
+ggsave(filename = glue::glue("C:/Users/Cabous/OneDrive/Desktop/22017542_Exam/Questions/Question1/Tex/plot_4.png"), 
+       
+       plot = dlog_fund_ret_plot, device = "png", width = 12, height = 6)
+
+```
+
+
+
+
+
+
 # Question 1: Yield Spreads
+
+
 
 ## Import Data
 
