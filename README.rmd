@@ -1194,7 +1194,7 @@ fviz_contrib(pca, choice = "var", axes = 2, top = 10)
 
 ```
 
-Next I will calculate the rolling average pairwise correlations between all the stocks. That will require calculating the rolling pairwise correlation between all the stock combinations in the index and then take the mean of all those. Thus, I will tackle the problem in bite-sized pieces.The graph below shows the 90-day Mean Rolling Constituent Correlation. I sourced the code I used for the function *rolling_cor_func* , from the following link:
+Next I will calculate the rolling average pairwise correlations between all the stocks. That will require calculating the rolling pairwise correlation between all the stock combinations in the index and then take the mean of all those. Thus, I will tackle the problem in bite-sized pieces. The graph below shows the 90-day Mean Rolling Constituent Correlation. I sourced the code I used for the function *rolling_cor_func* , from the following link:
 
 (https://robotwealth.com/rolling-mean-correlations-in-the-tidyverse/)
 
@@ -1256,6 +1256,10 @@ finplot(mean_cor_plot)
 
 # Question 5
 
+The study of volatility is particularly important in financial modelling. Thus, in this question I will look at the South African ZAR since it has been quite volatile over the past couple of years. More specifically, I will conduct a simple univariate-GARCH estimation to analyse the volatility of the Rand.
+
+## Import Data
+
 ```{r}
 # Load Data
 
@@ -1272,7 +1276,9 @@ bbdxy <- read_rds("data/bbdxy.rds")
 ```
 
 
-## Volatility
+## Implied Volatility
+
+I will start by looking at implied volatility. The market's estimate of how much a currency pair will fluctuate over a certain period in the future is known as implied volatility. Option traders can use a currency volatility index to price options on currency pairs. Implied volatility is generally considered a measure of sentiment.
 
 ```{r}
 ## To analyse whether the Rand is volatile lets look at Implied volatility
@@ -1309,11 +1315,13 @@ IV_plot
 ```
 
 
-This suggests that the market foresees the highest future volatility for the Rand, for this sub-sample.
+This suggests that the market foresees the highest future volatility for the Rand [for this sub-sample].
 
+Now I'll calculate the returns to analyse the Auto-Persistence in Returns
+
+* Calculate Returns 
 
 ```{r}
-
 
 # Calculating Returns and Cleaning
 
@@ -1339,6 +1347,8 @@ xts_zar_rtn <- zar_rtn %>%
 
 MarchTest(xts_zar_rtn)
 ```
+
+The MARCH test indicates that all the MV portmanteau tests reject the null of no conditional heteroskedasticity, motivating the use of a GARCH model
 
 
 ```{r}
@@ -1371,6 +1381,10 @@ ggplot(PlotRtn) +
 
 ```
 
+From the graph above it is clear that there is persistence in certain periods of USDZAR returns. Moreover, we have first and second order persistence as well as clear evidence of long-term memory in the second order process.
+
+Let's investigate further...
+
 
 ```{r}
 forecast::Acf(xts_zar_rtn, main = "ACF: Equally Weighted Return")
@@ -1388,37 +1402,48 @@ forecast::Acf(xts_zar_rtn^2, main = "ACF: Squared Equally Weighted Return")
 forecast::Acf(abs(xts_zar_rtn), main = "ACF: Absolute Equally Weighted Return")
 ```
 
+The above proves we have very strong conditional heteroskedasticity, as well as long memory.
+
+A formal test for ARCH effects: LBQ stats on squared returns:
+
 ```{r}
 Box.test(coredata(xts_zar_rtn^2), type = "Ljung-Box", lag = 12)
 ```
 
-# Find best model
+The test rejects the nulls of no ARCH effects - hence I will need to control for the remaining conditional heteroskedasticity in the returns series
+
+## Find best model
 
 ```{r}
+
+# *Vol_Model_Sel & vol_func* are function I created (see code folder)
 
 best_model <- Vol_Model_Sel(zar_rtn)
 
 best_model
 ```
 
-# Fit Model
+It appears that a *gjrGARCH* model will perform best, so I will use it to model the data.
+
+## Fit Model
 
 ```{r}
 
 garch_fit_gjrGARCH <- vol_func(zar_rtn, "gjrGARCH")
 
-garch_fit_sGARCH <- vol_func(zar_rtn, "sGARCH")
-
-signbias(garch_fit_sGARCH)
+garch_fit_gjrGARCH
 ```
 
 
 ```{r, results = 'asis'}
 
 pacman::p_load(xtable)
-Table <- xtable(garch_fit_sGARCH@fit$matcoef)
 
-print(Table, type = "latex", comment = FALSE)
+Table <- xtable(garch_fit_gjrGARCH@fit$matcoef, digits=c(0, 4, 4, 4, 4))
+
+
+print(Table, type="html")
+#print(Table, type = "latex", comment = FALSE)
 ```
 
 
@@ -1426,7 +1451,7 @@ print(Table, type = "latex", comment = FALSE)
 ```{r}
 #Conditional variance Plot
 
-persistence(garch_fit_sGARCH)
+persistence(garch_fit_gjrGARCH)
 ```
 
 
@@ -1434,7 +1459,7 @@ persistence(garch_fit_sGARCH)
 # Persistence is alpha + beta, and it is typically very high and close to 1
 
 # To view the conditional variance plot, use:
-sigma <- sigma(garch_fit_sGARCH) %>% 
+sigma <- sigma(garch_fit_gjrGARCH) %>% 
     
     xts_tbl() 
 
@@ -1474,7 +1499,7 @@ fmxdat::finplot(Con_var_plot, y.pct = T, y.pct_acc = 1)
 ```
 
 ```{r}
-news_plot <- newsimpact(z = NULL, garch_fit_sGARCH)
+news_plot <- newsimpact(z = NULL, garch_fit_gjrGARCH)
 
 plot(news_plot$zx, news_plot$zy, ylab = news_plot$yexpr, xlab = news_plot$xexpr, type = "l", 
     main = "News Impact Curve")
@@ -1482,8 +1507,11 @@ plot(news_plot$zx, news_plot$zy, ylab = news_plot$yexpr, xlab = news_plot$xexpr,
 
 ```{r}
 
-plot(garch_fit_sGARCH, which = "all")
+plot(garch_fit_gjrGARCH, which = 1)
 ```
+
+
+Lets investigate further by compare smoothed ZAR Volatility to mean Global volatility
 
 
 ```{r}
