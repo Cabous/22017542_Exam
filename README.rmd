@@ -110,7 +110,7 @@ labs(title = "Cumulative Returns of Funds",
      
     subtitle = "", caption = "Note:\nStarting dates differ") +
     
-    theme_fmx(title.size = ggpts(40), subtitle.size = ggpts(5), 
+    theme_fmx(title.size = ggpts(50), subtitle.size = ggpts(5),
               
         caption.size = ggpts(25), CustomCaption = T)
 
@@ -1866,7 +1866,7 @@ plot_grid(DCC_oil_plot, labels = c(''))
 
 
 Although efficient, the DCC model estimations makes some strong assumptionss, e.g., it assumes a constant structure to the correlation dynamics.Therefore, I will also use The GoGARCH model which is highly efficient uses less
-parameter intensive estimation techniques to decompose the var-covar matrix into orthogonal sources of volatility, 
+parameter intensive estimation techniques to decompose the var-covar matrix into orthogonal sources of volatility 
 
 
 * Go Garch
